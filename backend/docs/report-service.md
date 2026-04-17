@@ -94,7 +94,7 @@ GET /api/reports/rounds/{round_id}/export?format=pdf
 
 - `csv` - табличная выгрузка;
 - `json` - полный структурированный отчет;
-- `pdf` - легковесный PDF-файл для демонстрации и скачивания.
+- `pdf` - оформленный PDF-файл на русском языке с таблицами и сводными блоками.
 
 ### Сводка
 
@@ -171,13 +171,14 @@ field_attachment
 
 ## Экспорт PDF
 
-PDF сейчас реализован без внешних системных зависимостей, чтобы контейнер собирался быстро и стабильно.
+PDF формируется через `ReportLab` с DejaVu-шрифтом, поэтому поддерживает русский текст.
 
-Ограничение текущей реализации:
+В PDF входят:
 
-- PDF использует встроенный базовый шрифт;
-- русские строки транслитерируются для совместимости;
-- для production-красивого PDF лучше подключить HTML-to-PDF или embedded TTF-шрифт.
+- русские заголовки и подписи;
+- сводные карточки по обходу или аналитике;
+- таблицы чек-листов, показаний, дефектов и вложений;
+- простые визуальные индикаторы выполнения и риска.
 
 ## Конфигурация
 
@@ -219,7 +220,8 @@ curl -L "http://127.0.0.1/api/reports/rounds/ROUND-2026-04-17-000123/export?form
 app/api/routes/reports.py             HTTP endpoints
 app/repositories/reports.py           SQL queries and aggregations
 app/schemas/report.py                 Pydantic schemas
-app/services/report_export.py         CSV/JSON/PDF export
+app/reports/                          документы и рендереры CSV/JSON/PDF
+app/services/report_export.py         совместимый импорт сервиса экспорта
 app/use_cases/                        report use cases
 app/containers/container.py           dependency wiring
 ```
