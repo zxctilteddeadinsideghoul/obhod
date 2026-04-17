@@ -133,6 +133,22 @@ export const api = {
     }
     return request(`/api/field/routes/${routeId}`, { token });
   },
+  listChecklistTemplates(token) {
+    if (isMockApiEnabled()) {
+      return mockApi.listChecklistTemplates(token);
+    }
+    return request("/api/field/checklists/templates", { token });
+  },
+  createRound(token, body) {
+    if (isMockApiEnabled()) {
+      return mockApi.createRound(token, body);
+    }
+    return request("/api/field/admin/rounds", {
+      method: "POST",
+      token,
+      body,
+    });
+  },
   getReportsSummary(token) {
     if (isMockApiEnabled()) {
       return mockApi.getReportsSummary(token);

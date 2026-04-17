@@ -3,63 +3,128 @@ import { useAuth } from "../auth/AuthContext";
 import { Card, EmptyState, ErrorState, LoadingState, PageHeader, StatusBadge } from "../components/Ui";
 import { api } from "../lib/api";
 import { useAsyncResource } from "../lib/hooks";
-import { describeReadingRange, equipmentStatusLabel, equipmentStatusTone, formatDateTime } from "../lib/format";
+import {
+  describeReadingRange,
+  displayValue,
+  equipmentStatusLabel,
+  equipmentStatusTone,
+  equipmentTypeLabel,
+  formatDateTime,
+} from "../lib/format";
 
 const FIELD_LABELS = {
   manufacturer: "Производитель",
   production_date: "Дата выпуска",
+  productionDate: "Дата выпуска",
   service_class: "Класс обслуживания",
+  serviceClass: "Класс обслуживания",
   pressure_stage: "Ступень давления",
+  pressureStage: "Ступень давления",
   power_kw: "Мощность, кВт",
+  powerKw: "Мощность, кВт",
   reserve_line: "Резервная линия",
+  reserveLine: "Резервная линия",
   diameter: "Диаметр",
   material: "Материал",
   schema_version: "Версия схемы",
+  schemaVersion: "Версия схемы",
   last_inspection_at: "Последний осмотр",
+  lastInspectionAt: "Последний осмотр",
   health_index: "Индекс состояния",
+  healthIndex: "Индекс состояния",
   tags: "Теги",
   last_warning_at: "Последнее предупреждение",
+  lastWarningAt: "Последнее предупреждение",
   vibration_alarm_count: "Срабатываний вибрации",
+  vibrationAlarmCount: "Срабатываний вибрации",
   seal_state: "Состояние уплотнения",
+  sealState: "Состояние уплотнения",
   corrosion_risk: "Риск коррозии",
+  corrosionRisk: "Риск коррозии",
   last_repair_order: "Последний ремонтный ордер",
+  lastRepairOrder: "Последний ремонтный ордер",
+  tech_no: "Технический номер",
+  techNo: "Технический номер",
+  passport_no: "Номер паспорта",
+  passportNo: "Номер паспорта",
+  serial_no: "Серийный номер",
+  serialNo: "Серийный номер",
+  qr_tag: "QR-метка",
+  qrTag: "QR-метка",
+  nfc_tag: "NFC-метка",
+  nfcTag: "NFC-метка",
+  type_id: "Тип оборудования",
+  typeId: "Тип оборудования",
+  state_id: "Состояние",
+  stateId: "Состояние",
+  org_id: "Организация",
+  orgId: "Организация",
 };
 
 function prettifyLabel(key) {
-  return FIELD_LABELS[key] || key.replaceAll("_", " ");
+  if (FIELD_LABELS[key]) {
+    return FIELD_LABELS[key];
+  }
+
+  return key
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replaceAll("_", " ")
+    .replace(/^./, (char) => char.toUpperCase());
+}
+
+function prettifyPath(path) {
+  return path.map(prettifyLabel).join(" / ");
 }
 
 function formatValue(key, value) {
-  if (value === null || value === undefined || value === "") {
-    return "—";
-  }
-
-  if (typeof value === "boolean") {
-    return value ? "Да" : "Нет";
-  }
-
   if (Array.isArray(value)) {
-    return value.length ? value.join(", ") : "—";
+    return value.length ? value.map((item) => formatValue(key, item)).join(", ") : "—";
   }
 
-  if (typeof value === "object") {
-    return Object.entries(value)
-      .map(([nestedKey, nestedValue]) => `${prettifyLabel(nestedKey)}: ${formatValue(nestedKey, nestedValue)}`)
-      .join("; ");
+  if (value && typeof value === "object") {
+    return "—";
   }
 
   if (key.endsWith("_at") || key.endsWith("_date")) {
     return formatDateTime(value);
   }
 
-  return String(value);
+  return displayValue(value);
+}
+
+function collectPairs(record, path = []) {
+  return Object.entries(record || {}).flatMap(([key, value]) => {
+    const nextPath = [...path, key];
+
+    if (Array.isArray(value)) {
+      return [
+        {
+          key: nextPath.join("."),
+          label: prettifyPath(nextPath),
+          value: formatValue(key, value),
+        },
+      ];
+    }
+
+    if (value && typeof value === "object") {
+      return collectPairs(value, nextPath);
+    }
+
+    return [
+      {
+        key: nextPath.join("."),
+        label: prettifyPath(nextPath),
+        value: formatValue(key, value),
+      },
+    ];
+  });
 }
 
 function renderPairs(record) {
-  return Object.entries(record || {}).map(([key, value]) => (
+  return collectPairs(record).map(({ key, label, value }) => (
     <div className="kv-row" key={key}>
-      <span>{prettifyLabel(key)}</span>
-      <strong>{formatValue(key, value)}</strong>
+      <span>{label}</span>
+      <strong>{value}</strong>
     </div>
   ));
 }
@@ -127,7 +192,7 @@ export function EquipmentPage() {
               <div className="detail-grid">
                 <div>
                   <span className="eyebrow">Тип</span>
-                  <strong>{detailState.data.type_id}</strong>
+                  <strong>{equipmentTypeLabel(detailState.data.type_id)}</strong>
                 </div>
                 <div>
                   <span className="eyebrow">Тех. номер</span>
@@ -182,7 +247,7 @@ export function EquipmentPage() {
                   {Object.keys(detailState.data.passport_json || {}).length ? (
                     <div className="kv-list">{renderPairs(detailState.data.passport_json)}</div>
                   ) : (
-                    <EmptyState title="Паспортные атрибуты пусты" description="JSON-паспорт пока не заполнен." />
+                    <EmptyState title="Паспортные данные пусты" description="Основные сведения об объекте пока не заполнены." />
                   )}
                 </Card>
                 <Card title="Текущее состояние" subtitle="Оперативные признаки, последние события и служебные атрибуты">

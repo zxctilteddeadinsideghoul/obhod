@@ -461,22 +461,32 @@ a {
 }
 
 .auth-form,
+.inline-form,
 .hint-grid {
   display: grid;
   gap: 14px;
 }
 
-.auth-form label {
+.auth-form label,
+.inline-form label {
   display: grid;
   gap: 8px;
 }
 
 .auth-form input,
-.auth-form select {
+.auth-form select,
+.inline-form input,
+.inline-form select {
   padding: 12px 14px;
   border-radius: 14px;
   border: 1px solid var(--border);
   background: #fffdf9;
+}
+
+.inline-form-row {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .tab-strip {
@@ -542,7 +552,8 @@ a {
 
   .metrics-grid,
   .detail-grid,
-  .hint-grid {
+  .hint-grid,
+  .inline-form-row {
     grid-template-columns: 1fr;
   }
 

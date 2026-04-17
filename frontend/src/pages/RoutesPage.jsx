@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAuth } from "../auth/AuthContext";
 import { Card, EmptyState, ErrorState, LoadingState, PageHeader, StatusBadge } from "../components/Ui";
 import { api } from "../lib/api";
-import { sentenceFromStatus, statusTone } from "../lib/format";
+import { confirmMethodLabel, planningRuleLabel, qualificationLabel } from "../lib/format";
 import { useAsyncResource } from "../lib/hooks";
 
 export function RoutesPage() {
@@ -65,11 +65,11 @@ export function RoutesPage() {
                 </div>
                 <div>
                   <span className="eyebrow">Правило планирования</span>
-                  <strong>{detailState.data.planning_rule}</strong>
+                  <strong>{planningRuleLabel(detailState.data.planning_rule)}</strong>
                 </div>
                 <div>
                   <span className="eyebrow">Квалификация</span>
-                  <strong>{detailState.data.qualification_id || "—"}</strong>
+                  <strong>{qualificationLabel(detailState.data.qualification_id)}</strong>
                 </div>
                 <div>
                   <span className="eyebrow">Версия</span>
@@ -85,9 +85,9 @@ export function RoutesPage() {
                 {detailState.data.steps.map((step) => (
                   <div className="table-row" key={step.id}>
                     <span>#{step.seq_no}</span>
-                    <strong>{step.equipment_id}</strong>
-                    <span>{step.checkpoint_id || "Без checkpoint"}</span>
-                    <StatusBadge status={step.confirm_by} tone={statusTone(step.confirm_by)} />
+                    <strong>Оборудование маршрута</strong>
+                    <span>{step.checkpoint_id ? `Контрольная точка ${step.checkpoint_id}` : "Контрольная точка не задана"}</span>
+                    <StatusBadge status={confirmMethodLabel(step.confirm_by)} tone="info" />
                     <span>{step.mandatory_flag ? "Обязателен" : "Опционален"}</span>
                   </div>
                 ))}

@@ -22,6 +22,109 @@ export function formatPercent(value) {
   return `${Math.max(0, Math.min(100, Number(value || 0)))}%`;
 }
 
+export function equipmentTypeLabel(type) {
+  const labels = {
+    compressor: "Компрессор",
+    pump: "Насос",
+    valve: "Арматура",
+    heat_exchanger: "Теплообменник",
+    fan: "Вентилятор",
+  };
+
+  return labels[type] || type || "Не указан";
+}
+
+export function planningRuleLabel(rule) {
+  const labels = {
+    manual: "По запросу",
+    every_3_hours: "Каждые 3 часа",
+    every_shift: "Каждую смену",
+    daily_06_00: "Ежедневно в 06:00",
+  };
+
+  return labels[rule] || rule || "Не указано";
+}
+
+export function qualificationLabel(value) {
+  const labels = {
+    "OPERATOR-TU": "Оператор ТУ",
+    "OPERATOR-CHEM": "Оператор хим. участка",
+  };
+
+  return labels[value] || value || "Не указана";
+}
+
+export function confirmMethodLabel(value) {
+  const labels = {
+    qr: "По QR",
+    nfc: "По NFC",
+    manual: "Вручную",
+  };
+
+  return labels[value] || value || "Не указан";
+}
+
+export function answerTypeLabel(value) {
+  const labels = {
+    bool: "Да/нет",
+    number: "Число",
+    text: "Текст",
+  };
+
+  return labels[value] || value || "Не указан";
+}
+
+export function eventTypeLabel(value) {
+  const labels = {
+    round_started: "Обход начат",
+    checkpoint_confirmed: "Точка подтверждена",
+    defect_registered: "Замечание зарегистрировано",
+    round_completed: "Обход завершен",
+    round_created: "Обход создан",
+  };
+
+  return labels[value] || value || "Событие";
+}
+
+export function resultCodeLabel(value) {
+  const labels = {
+    ok: "Норма",
+    normal: "Норма",
+    pass: "Пройдено",
+    fail: "Не пройдено",
+    yes: "Да",
+    no: "Нет",
+    true: "Да",
+    false: "Нет",
+    warning: "Есть отклонение",
+    critical: "Критичное отклонение",
+    noise: "Посторонний шум",
+  };
+
+  return labels[String(value || "").toLowerCase()] || value || "Без оценки";
+}
+
+export function displayValue(value) {
+  if (value === null || value === undefined || value === "") {
+    return "—";
+  }
+
+  if (typeof value === "boolean") {
+    return value ? "Да" : "Нет";
+  }
+
+  if (Array.isArray(value)) {
+    return value.length ? value.map(displayValue).join(", ") : "—";
+  }
+
+  if (typeof value === "object") {
+    const entries = Object.values(value).map(displayValue).filter(Boolean);
+    return entries.length ? entries.join(", ") : "—";
+  }
+
+  return String(value);
+}
+
 export function statusTone(status) {
   const normalized = String(status || "").toLowerCase();
 

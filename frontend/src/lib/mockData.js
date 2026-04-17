@@ -504,6 +504,10 @@ function getChecklistTemplateIndex(db) {
   return new Map(db.checklistTemplates.map((item) => [item.id, item]));
 }
 
+function getEmployeeName(db, employeeId) {
+  return db.rounds.find((item) => item.employee_id === employeeId)?.employee_name || employeeId;
+}
+
 function buildTask(round, route) {
   return {
     id: round.id,
@@ -544,6 +548,28 @@ function buildRoundDetail(db, roundId) {
       .map((step) => equipmentIndex.get(step.equipment_id))
       .filter(Boolean)
       .map((item) => clone(item)),
+    checklist_results: [],
+    equipment_parameters: (route?.steps || [])
+      .map((step) => {
+        const equipmentItem = equipmentIndex.get(step.equipment_id);
+        return (equipmentItem?.parameters || []).map((parameter) => ({
+          equipment_id: equipmentItem.id,
+          parameter_def: {
+            id: `${equipmentItem.id}:${parameter.code}`,
+            equipment_type_id: equipmentItem.type_id,
+            code: parameter.code,
+            name: parameter.label || parameter.code,
+            unit: parameter.unit || null,
+            data_type: "number",
+            min_value: parameter.min ?? null,
+            max_value: parameter.max ?? null,
+            critical_min: parameter.critical_min ?? null,
+            critical_max: parameter.critical_max ?? null,
+            payload_json: {},
+          },
+        }));
+      })
+      .flat(),
     readings: clone(round.readings || []),
     defects: clone(round.defects || []),
     journal: clone(round.journal || []),
@@ -674,6 +700,77 @@ export const mockApi = {
       throw new Error("Маршрут не найден.");
     }
     return delay(route);
+  },
+
+  listChecklistTemplates() {
+    return delay(ensureDb().checklistTemplates);
+  },
+
+  createRound(_, payload) {
+    const db = ensureDb();
+    const route = db.routes.find((item) => item.id === payload.route_template_id);
+    const checklistTemplate = db.checklistTemplates.find((item) => item.id === payload.checklist_template_id);
+
+    if (!route || !checklistTemplate) {
+      throw new Error("Маршрут или шаблон чек-листа не найден.");
+    }
+
+    const nextId = payload.id || `ROUND-${new Date().toISOString().replace(/[-:TZ.]/g, "").slice(0, 12)}`;
+    if (db.rounds.some((item) => item.id === nextId)) {
+      throw new Error("Обход с таким идентификатором уже существует.");
+    }
+
+    const plannedStart = payload.planned_start;
+    const plannedEnd = payload.planned_end
+      || new Date(new Date(plannedStart).getTime() + Number(route.duration_min || 60) * 60000).toISOString();
+    const employeeId = payload.employee_id.trim();
+
+    const round = {
+      id: nextId,
+      route_id: payload.route_template_id,
+      employee_id: employeeId,
+      employee_name: getEmployeeName(db, employeeId),
+      shift_id: payload.shift_id || null,
+      status: "planned",
+      planned_start: plannedStart,
+      planned_end: plannedEnd,
+      completion_pct: 0,
+      checklist_template_id: payload.checklist_template_id,
+      checklist_instance: {
+        id: `CLI-${nextId}`,
+        status: "draft",
+        completion_pct: 0,
+        started_at: null,
+        finished_at: null,
+      },
+      readings: [],
+      defects: [],
+      journal: [
+        {
+          id: `JE-${Date.now()}`,
+          event_ts: new Date().toISOString(),
+          event_type: "round_created",
+          title: "Обход создан и назначен сотруднику",
+        },
+      ],
+    };
+
+    db.rounds.unshift(round);
+    writeDb(db);
+    return delay({
+      id: round.id,
+      org_id: payload.org_id || "ORG-01",
+      route_template_id: payload.route_template_id,
+      planned_start: round.planned_start,
+      planned_end: round.planned_end,
+      actual_start: null,
+      actual_end: null,
+      shift_id: round.shift_id,
+      employee_id: round.employee_id,
+      status: round.status,
+      qualification_id: payload.qualification_id || route.qualification_id || null,
+      snapshot_json: payload.snapshot_json || {},
+    });
   },
 
   getReportsSummary() {

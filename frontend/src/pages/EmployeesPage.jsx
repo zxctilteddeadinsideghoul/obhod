@@ -57,7 +57,7 @@ export function EmployeesPage() {
             <div key={employee.employee_id} className="table-row wide">
               <div>
                 <strong>{employee.employee_name}</strong>
-                <span>{employee.employee_id}</span>
+                <span>Исполнитель</span>
               </div>
               <span>Обходов: {employee.rounds_total}</span>
               <span>Завершено: {employee.rounds_completed}</span>

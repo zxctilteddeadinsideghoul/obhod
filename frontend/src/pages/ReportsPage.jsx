@@ -65,7 +65,7 @@ export function ReportsPage() {
                 </div>
                 <div>
                   <strong>{row.employee_name}</strong>
-                  <span>{row.employee_id}</span>
+                  <span>Исполнитель обхода</span>
                 </div>
                 <span>{formatDateTime(row.planned_start)}</span>
                 <div>

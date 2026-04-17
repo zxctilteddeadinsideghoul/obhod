@@ -71,7 +71,7 @@ export function AnalyticsPage() {
                     <div key={item.employee_id} className="table-row wide">
                       <div>
                         <strong>{item.employee_name}</strong>
-                        <span>{item.employee_id}</span>
+                        <span>Исполнитель</span>
                       </div>
                       <span>Обходов: {item.rounds_total}</span>
                       <span>Завершено: {item.rounds_completed}</span>
