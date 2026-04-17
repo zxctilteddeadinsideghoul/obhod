@@ -10,6 +10,7 @@ from app.repositories import (
     TasksRepository,
 )
 from app.use_cases import (
+    FinishRoundUseCase,
     GetChecklistTemplateUseCase,
     GetEquipmentUseCase,
     GetRouteUseCase,
@@ -20,6 +21,8 @@ from app.use_cases import (
     ListRoutesUseCase,
     ListTasksUseCase,
     SeedDemoDataUseCase,
+    StartRoundUseCase,
+    SubmitChecklistItemResultUseCase,
 )
 
 
@@ -46,6 +49,23 @@ class Container(containers.DeclarativeContainer):
         GetTaskDetailUseCase,
         rounds_repository=rounds_repository,
         tasks_repository=tasks_repository,
+    )
+    start_round_use_case = providers.Factory(
+        StartRoundUseCase,
+        session=db_session,
+        rounds_repository=rounds_repository,
+        checklists_repository=checklists_repository,
+    )
+    submit_checklist_item_result_use_case = providers.Factory(
+        SubmitChecklistItemResultUseCase,
+        session=db_session,
+        checklists_repository=checklists_repository,
+    )
+    finish_round_use_case = providers.Factory(
+        FinishRoundUseCase,
+        session=db_session,
+        rounds_repository=rounds_repository,
+        checklists_repository=checklists_repository,
     )
     list_checklist_templates_use_case = providers.Factory(
         ListChecklistTemplatesUseCase,

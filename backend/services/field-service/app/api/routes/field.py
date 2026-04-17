@@ -5,15 +5,28 @@ from app.api.dependencies import (
     get_get_equipment_use_case,
     get_get_route_use_case,
     get_get_task_detail_use_case,
+    get_finish_round_use_case,
     get_list_checklist_templates_use_case,
     get_list_equipment_use_case,
     get_list_my_rounds_use_case,
     get_list_routes_use_case,
     get_list_tasks_use_case,
     get_seed_demo_data_use_case,
+    get_start_round_use_case,
+    get_submit_checklist_item_result_use_case,
 )
-from app.schemas import ChecklistTemplateRead, EquipmentRead, RouteRead, RoundRead, TaskDetailRead, TaskSummaryRead
+from app.schemas import (
+    ChecklistItemResultCreate,
+    ChecklistItemResultSubmitRead,
+    ChecklistTemplateRead,
+    EquipmentRead,
+    RouteRead,
+    RoundRead,
+    TaskDetailRead,
+    TaskSummaryRead,
+)
 from app.use_cases import (
+    FinishRoundUseCase,
     GetChecklistTemplateUseCase,
     GetEquipmentUseCase,
     GetRouteUseCase,
@@ -24,6 +37,8 @@ from app.use_cases import (
     ListRoutesUseCase,
     ListTasksUseCase,
     SeedDemoDataUseCase,
+    StartRoundUseCase,
+    SubmitChecklistItemResultUseCase,
 )
 
 
@@ -127,6 +142,40 @@ async def get_task(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Task is not assigned to current worker")
 
 
+@router.post("/tasks/{round_id}/start", response_model=RoundRead)
+async def start_round(
+    round_id: str,
+    x_user_id: str = Header(),
+    x_user_role: str = Header(),
+    use_case: StartRoundUseCase = Depends(get_start_round_use_case),
+) -> RoundRead:
+    try:
+        return await use_case.execute(round_id, x_user_id, x_user_role)
+    except KeyError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+    except PermissionError:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Task is not assigned to current worker")
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+
+
+@router.post("/tasks/{round_id}/finish", response_model=RoundRead)
+async def finish_round(
+    round_id: str,
+    x_user_id: str = Header(),
+    x_user_role: str = Header(),
+    use_case: FinishRoundUseCase = Depends(get_finish_round_use_case),
+) -> RoundRead:
+    try:
+        return await use_case.execute(round_id, x_user_id, x_user_role)
+    except KeyError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+    except PermissionError:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Task is not assigned to current worker")
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+
+
 @router.get("/checklists/templates", response_model=list[ChecklistTemplateRead])
 async def list_checklist_templates(
     use_case: ListChecklistTemplatesUseCase = Depends(get_list_checklist_templates_use_case),
@@ -143,3 +192,25 @@ async def get_checklist_template(
         return await use_case.execute(template_id)
     except KeyError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Checklist template not found")
+
+
+@router.post(
+    "/checklists/{checklist_instance_id}/items/{item_template_id}/result",
+    response_model=ChecklistItemResultSubmitRead,
+)
+async def submit_checklist_item_result(
+    checklist_instance_id: str,
+    item_template_id: str,
+    payload: ChecklistItemResultCreate,
+    x_user_id: str = Header(),
+    x_user_role: str = Header(),
+    use_case: SubmitChecklistItemResultUseCase = Depends(get_submit_checklist_item_result_use_case),
+) -> ChecklistItemResultSubmitRead:
+    try:
+        return await use_case.execute(checklist_instance_id, item_template_id, payload, x_user_id, x_user_role)
+    except KeyError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Checklist item not found")
+    except PermissionError:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Checklist is not assigned to current worker")
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))

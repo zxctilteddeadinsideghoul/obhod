@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -104,6 +104,33 @@ class ChecklistInstanceRead(BaseModel):
     snapshot_json: dict = Field(default_factory=dict)
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class ChecklistItemResultRead(BaseModel):
+    id: str
+    checklist_instance_id: str
+    item_template_id: str
+    equipment_id: str | None = None
+    result_code: str | None = None
+    result_value: dict = Field(default_factory=dict)
+    comment: str | None = None
+    due_date: date | None = None
+    status: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ChecklistItemResultCreate(BaseModel):
+    equipment_id: str | None = None
+    result_code: str | None = None
+    result_value: dict = Field(default_factory=dict)
+    comment: str | None = None
+    due_date: date | None = None
+
+
+class ChecklistItemResultSubmitRead(BaseModel):
+    result: ChecklistItemResultRead
+    checklist_instance: ChecklistInstanceRead
 
 
 class TaskSummaryRead(BaseModel):

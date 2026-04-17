@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.containers import Container
 from app.db import get_db_session
 from app.use_cases import (
+    FinishRoundUseCase,
     GetChecklistTemplateUseCase,
     GetEquipmentUseCase,
     GetRouteUseCase,
@@ -15,6 +16,8 @@ from app.use_cases import (
     ListRoutesUseCase,
     ListTasksUseCase,
     SeedDemoDataUseCase,
+    StartRoundUseCase,
+    SubmitChecklistItemResultUseCase,
 )
 
 
@@ -81,6 +84,27 @@ def get_get_task_detail_use_case(
     container: Container = Depends(get_container),
 ) -> GetTaskDetailUseCase:
     return _build_with_session(container, container.get_task_detail_use_case, session)
+
+
+def get_start_round_use_case(
+    session: AsyncSession = Depends(get_db_session),
+    container: Container = Depends(get_container),
+) -> StartRoundUseCase:
+    return _build_with_session(container, container.start_round_use_case, session)
+
+
+def get_submit_checklist_item_result_use_case(
+    session: AsyncSession = Depends(get_db_session),
+    container: Container = Depends(get_container),
+) -> SubmitChecklistItemResultUseCase:
+    return _build_with_session(container, container.submit_checklist_item_result_use_case, session)
+
+
+def get_finish_round_use_case(
+    session: AsyncSession = Depends(get_db_session),
+    container: Container = Depends(get_container),
+) -> FinishRoundUseCase:
+    return _build_with_session(container, container.finish_round_use_case, session)
 
 
 def get_list_checklist_templates_use_case(
