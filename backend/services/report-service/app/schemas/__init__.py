@@ -1,5 +1,6 @@
 from app.schemas.report import (
     ChecklistResultRead,
+    AttachmentRead,
     CurrentUserRead,
     DefectRead,
     EmployeeAnalyticsItem,
@@ -13,6 +14,7 @@ from app.schemas.report import (
 
 __all__ = [
     "ChecklistResultRead",
+    "AttachmentRead",
     "CurrentUserRead",
     "DefectRead",
     "EmployeeAnalyticsItem",

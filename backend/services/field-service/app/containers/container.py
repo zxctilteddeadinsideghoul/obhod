@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.repositories import (
     AdminRepository,
+    AttachmentsRepository,
     ChecklistsRepository,
     DemoDataRepository,
     EquipmentRepository,
@@ -17,12 +18,14 @@ from app.use_cases import (
     CreateEquipmentUseCase,
     CreateRoundUseCase,
     CreateRouteUseCase,
+    DownloadAttachmentUseCase,
     FinishRoundUseCase,
     GetChecklistTemplateUseCase,
     GetEquipmentUseCase,
     GetRouteUseCase,
     GetTaskDetailUseCase,
     ListChecklistTemplatesUseCase,
+    ListAttachmentsUseCase,
     ListEquipmentUseCase,
     ListMyRoundsUseCase,
     ListRoutesUseCase,
@@ -31,7 +34,10 @@ from app.use_cases import (
     StartRoundUseCase,
     SubmitChecklistItemResultUseCase,
     SubmitEquipmentReadingUseCase,
+    UploadAttachmentUseCase,
 )
+from app.core.config import get_settings
+from app.services import ObjectStorage
 
 
 class Container(containers.DeclarativeContainer):
@@ -39,7 +45,10 @@ class Container(containers.DeclarativeContainer):
 
     db_session = providers.Dependency(instance_of=AsyncSession)
 
+    object_storage = providers.Singleton(ObjectStorage, settings=providers.Callable(get_settings))
+
     admin_repository = providers.Factory(AdminRepository, session=db_session)
+    attachments_repository = providers.Factory(AttachmentsRepository, session=db_session)
     checklists_repository = providers.Factory(ChecklistsRepository, session=db_session)
     demo_data_repository = providers.Factory(DemoDataRepository, session=db_session)
     equipment_repository = providers.Factory(EquipmentRepository, session=db_session)
@@ -67,6 +76,21 @@ class Container(containers.DeclarativeContainer):
         CreateRoundUseCase,
         session=db_session,
         repository=admin_repository,
+    )
+    upload_attachment_use_case = providers.Factory(
+        UploadAttachmentUseCase,
+        session=db_session,
+        attachments_repository=attachments_repository,
+        object_storage=object_storage,
+    )
+    list_attachments_use_case = providers.Factory(
+        ListAttachmentsUseCase,
+        attachments_repository=attachments_repository,
+    )
+    download_attachment_use_case = providers.Factory(
+        DownloadAttachmentUseCase,
+        attachments_repository=attachments_repository,
+        object_storage=object_storage,
     )
     seed_demo_data_use_case = providers.Factory(SeedDemoDataUseCase, repository=demo_data_repository)
     list_equipment_use_case = providers.Factory(ListEquipmentUseCase, repository=equipment_repository)

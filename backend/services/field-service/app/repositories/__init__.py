@@ -1,4 +1,5 @@
 from app.repositories.admin import AdminRepository
+from app.repositories.attachments import AttachmentsRepository
 from app.repositories.checklists import ChecklistsRepository
 from app.repositories.demo_data import DemoDataRepository
 from app.repositories.equipment import EquipmentRepository
@@ -9,6 +10,7 @@ from app.repositories.tasks import TasksRepository
 
 __all__ = [
     "AdminRepository",
+    "AttachmentsRepository",
     "ChecklistsRepository",
     "DemoDataRepository",
     "EquipmentRepository",

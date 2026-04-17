@@ -72,11 +72,24 @@ class DefectRead(BaseModel):
     status: str
 
 
+class AttachmentRead(BaseModel):
+    id: str
+    entity_type: str
+    entity_id: str
+    file_name: str
+    mime_type: str
+    size_bytes: int | None = None
+    checksum: str | None = None
+    download_url: str
+    payload_json: dict
+
+
 class RoundReportDetail(BaseModel):
     round: RoundReportListItem
     checklist_results: list[ChecklistResultRead]
     readings: list[EquipmentReadingRead]
     defects: list[DefectRead]
+    attachments: list[AttachmentRead]
 
 
 class ReportsSummary(BaseModel):

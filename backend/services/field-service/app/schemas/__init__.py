@@ -1,4 +1,5 @@
 from app.schemas.field import (
+    AttachmentRead,
     ChecklistItemTemplateCreate,
     ChecklistItemTemplateRead,
     ChecklistItemResultCreate,
@@ -26,6 +27,7 @@ from app.schemas.field import (
 )
 
 __all__ = [
+    "AttachmentRead",
     "ChecklistItemTemplateCreate",
     "ChecklistItemTemplateRead",
     "ChecklistItemResultCreate",

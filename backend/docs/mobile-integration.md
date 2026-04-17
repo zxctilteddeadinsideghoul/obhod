@@ -581,6 +581,7 @@ GET  /api/field/tasks/{round_id}
 POST /api/field/tasks/{round_id}/start
 POST /api/field/tasks/{round_id}/steps/{route_step_id}/confirm
 POST /api/field/checklists/{checklist_instance_id}/items/{item_template_id}/result
+POST /api/field/attachments
 POST /api/field/equipment/{equipment_id}/readings
 POST /api/field/tasks/{round_id}/finish
 ```
@@ -590,6 +591,7 @@ POST /api/field/tasks/{round_id}/finish
 - Полная форма проверки не должна считаться доступной до успешного QR/NFC-подтверждения точки.
 - При сканировании нужно отправлять `confirm_by` и `scanned_value`.
 - При отправке формы и показаний нужно передавать `route_step_id`.
+- Фотофиксацию нужно отправлять после создания результата пункта чек-листа, привязывая файл к `checklist_item_result`.
 - Если сервер вернул `409 Conflict`, форму открывать нельзя.
 - Если нет связи, мобильное приложение в будущем должно сохранить действие локально через Room и синхронизировать позже.
 - `completion_pct` можно использовать для отображения прогресса заполнения формы.
@@ -609,6 +611,38 @@ item_template_id 2:    TPL-EVERYDAY-SAFETY-02-ITEM-2
 parameter_def_id:      PARAM-COMPRESSOR-PRESSURE-OUT
 qr_tag:                QR:EQ-KC0103
 nfc_tag:               NFC:04AABB11CC
+```
+
+## Фотофиксация
+
+```http
+POST /api/field/attachments
+Authorization: Bearer dev-token
+Content-Type: multipart/form-data
+```
+
+Form fields:
+
+- `entity_type` - например `checklist_item_result`;
+- `entity_id` - id результата пункта чек-листа;
+- `payload_json` - дополнительная информация строкой JSON;
+- `file` - фото или медиафайл.
+
+Пример:
+
+```bash
+curl -X POST http://localhost/api/field/attachments \
+  -H "Authorization: Bearer dev-token" \
+  -F "entity_type=checklist_item_result" \
+  -F "entity_id=a7cdaab8-26df-4e85-bf55-f97d7a0333c7" \
+  -F "payload_json={\"caption\":\"Фото дефекта\"}" \
+  -F "file=@photo.jpg;type=image/jpeg"
+```
+
+Ответ содержит `download_url`, по которому файл можно открыть через backend:
+
+```http
+GET /api/field/attachments/{attachment_id}/download
 ```
 
 Перед проверкой demo-данных можно вызвать:

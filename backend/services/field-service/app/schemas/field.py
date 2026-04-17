@@ -270,6 +270,21 @@ class ChecklistItemResultSubmitRead(BaseModel):
     checklist_instance: ChecklistInstanceRead
 
 
+class AttachmentRead(BaseModel):
+    id: str
+    entity_type: str
+    entity_id: str
+    file_name: str
+    mime_type: str
+    size_bytes: int | None = None
+    checksum: str | None = None
+    storage_uri: str
+    download_url: str
+    payload_json: dict = Field(default_factory=dict)
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class TaskSummaryRead(BaseModel):
     id: str
     status: str

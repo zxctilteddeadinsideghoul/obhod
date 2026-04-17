@@ -5,3 +5,5 @@ SQLAlchemy==2.0.36
 asyncpg==0.30.0
 pydantic-settings==2.7.1
 alembic==1.14.0
+minio==7.2.15
+python-multipart==0.0.20

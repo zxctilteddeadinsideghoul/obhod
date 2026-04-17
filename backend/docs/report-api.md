@@ -56,6 +56,13 @@ GET /api/reports/rounds/{round_id}
 - заполненные пункты чек-листа;
 - показания оборудования;
 - выявленные дефекты.
+- вложения и фотофиксацию с `download_url`.
+
+Файлы открываются через field-service:
+
+```http
+GET /api/field/attachments/{attachment_id}/download
+```
 
 ## Аналитика по оборудованию
 

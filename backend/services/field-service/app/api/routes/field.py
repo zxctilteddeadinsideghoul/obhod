@@ -1,4 +1,7 @@
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+import json
+
+from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, UploadFile, status
+from fastapi.responses import Response
 
 from app.api.dependencies import (
     get_confirm_route_step_use_case,
@@ -6,11 +9,13 @@ from app.api.dependencies import (
     get_create_equipment_use_case,
     get_create_round_use_case,
     get_create_route_use_case,
+    get_download_attachment_use_case,
     get_get_checklist_template_use_case,
     get_get_equipment_use_case,
     get_get_route_use_case,
     get_get_task_detail_use_case,
     get_finish_round_use_case,
+    get_list_attachments_use_case,
     get_list_checklist_templates_use_case,
     get_list_equipment_use_case,
     get_list_my_rounds_use_case,
@@ -20,8 +25,10 @@ from app.api.dependencies import (
     get_start_round_use_case,
     get_submit_checklist_item_result_use_case,
     get_submit_equipment_reading_use_case,
+    get_upload_attachment_use_case,
 )
 from app.schemas import (
+    AttachmentRead,
     ChecklistTemplateCreate,
     ChecklistItemResultCreate,
     ChecklistItemResultSubmitRead,
@@ -45,12 +52,14 @@ from app.use_cases import (
     CreateEquipmentUseCase,
     CreateRoundUseCase,
     CreateRouteUseCase,
+    DownloadAttachmentUseCase,
     FinishRoundUseCase,
     GetChecklistTemplateUseCase,
     GetEquipmentUseCase,
     GetRouteUseCase,
     GetTaskDetailUseCase,
     ListChecklistTemplatesUseCase,
+    ListAttachmentsUseCase,
     ListEquipmentUseCase,
     ListMyRoundsUseCase,
     ListRoutesUseCase,
@@ -59,6 +68,7 @@ from app.use_cases import (
     StartRoundUseCase,
     SubmitChecklistItemResultUseCase,
     SubmitEquipmentReadingUseCase,
+    UploadAttachmentUseCase,
 )
 
 
@@ -156,6 +166,69 @@ async def create_round(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Route, checklist template or employee not found")
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+
+
+@router.post("/attachments", response_model=AttachmentRead, status_code=status.HTTP_201_CREATED)
+async def upload_attachment(
+    entity_type: str = Form(),
+    entity_id: str = Form(),
+    file: UploadFile = File(),
+    payload_json: str = Form(default="{}"),
+    x_user_id: str = Header(),
+    x_user_role: str = Header(),
+    use_case: UploadAttachmentUseCase = Depends(get_upload_attachment_use_case),
+) -> AttachmentRead:
+    try:
+        payload = json.loads(payload_json)
+        if not isinstance(payload, dict):
+            raise ValueError("payload_json must be an object")
+        return await use_case.execute(entity_type, entity_id, file, payload, x_user_id, x_user_role)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid payload_json")
+    except PermissionError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
+    except KeyError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Attachment target not found")
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+
+
+@router.get("/attachments", response_model=list[AttachmentRead])
+async def list_attachments(
+    entity_type: str,
+    entity_id: str,
+    x_user_id: str = Header(),
+    x_user_role: str = Header(),
+    use_case: ListAttachmentsUseCase = Depends(get_list_attachments_use_case),
+) -> list[AttachmentRead]:
+    try:
+        return await use_case.execute(entity_type, entity_id, x_user_id, x_user_role)
+    except PermissionError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
+    except KeyError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Attachment target not found")
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+
+
+@router.get("/attachments/{attachment_id}/download")
+async def download_attachment(
+    attachment_id: str,
+    x_user_id: str = Header(),
+    x_user_role: str = Header(),
+    use_case: DownloadAttachmentUseCase = Depends(get_download_attachment_use_case),
+) -> Response:
+    try:
+        content, file_name, mime_type = await use_case.execute(attachment_id, x_user_id, x_user_role)
+        return Response(
+            content=content,
+            media_type=mime_type,
+            headers={"Content-Disposition": f'inline; filename="{file_name}"'},
+        )
+    except PermissionError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
+    except KeyError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Attachment not found")
 
 
 @router.get("/equipment", response_model=list[EquipmentRead])

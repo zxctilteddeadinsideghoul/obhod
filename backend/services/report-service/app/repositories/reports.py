@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings
 from app.schemas import (
+    AttachmentRead,
     ChecklistResultRead,
     CurrentUserRead,
     DefectRead,
@@ -238,12 +239,66 @@ class ReportsRepository:
             ),
             {"round_id": round_id},
         )
+        attachments = await self.session.execute(
+            text(
+                """
+                select
+                    a.id,
+                    a.entity_type,
+                    a.entity_id,
+                    a.file_name,
+                    a.mime_type,
+                    a.size_bytes,
+                    a.checksum,
+                    a.payload_json
+                from field_attachment a
+                where
+                    (a.entity_type = 'round' and a.entity_id = :round_id)
+                    or (
+                        a.entity_type = 'checklist_item_result'
+                        and a.entity_id in (
+                            select cir.id
+                            from field_checklist_item_result cir
+                            join field_checklist_instance ci on ci.id = cir.checklist_instance_id
+                            where ci.round_instance_id = :round_id
+                        )
+                    )
+                    or (
+                        a.entity_type = 'defect'
+                        and a.entity_id in (
+                            select d.id
+                            from field_defect d
+                            join field_checklist_instance ci on ci.id = d.source_checklist_id
+                            where ci.round_instance_id = :round_id
+                        )
+                    )
+                    or (
+                        a.entity_type = 'equipment'
+                        and a.entity_id in (
+                            select rs.equipment_id
+                            from field_route_step rs
+                            join field_round_instance ri on ri.route_template_id = rs.route_template_id
+                            where ri.id = :round_id
+                        )
+                    )
+                order by a.created_at desc
+                """
+            ),
+            {"round_id": round_id},
+        )
 
         return RoundReportDetail(
             round=RoundReportListItem(**dict(round_row)),
             checklist_results=[ChecklistResultRead(**dict(row)) for row in results.mappings().all()],
             readings=[EquipmentReadingRead(**dict(row)) for row in readings.mappings().all()],
             defects=[DefectRead(**dict(row)) for row in defects.mappings().all()],
+            attachments=[
+                AttachmentRead(
+                    **dict(row),
+                    download_url=f"/api/field/attachments/{row['id']}/download",
+                )
+                for row in attachments.mappings().all()
+            ],
         )
 
     async def get_summary(self) -> ReportsSummary:
