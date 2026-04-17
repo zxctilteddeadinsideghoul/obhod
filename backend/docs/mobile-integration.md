@@ -88,7 +88,7 @@ Response:
 GET /api/field/health
 ```
 
-Назначение: healthcheck для мобильного клиента.
+Назначение: открытый healthcheck для мобильного клиента. Авторизация не требуется.
 
 Response:
 
@@ -147,7 +147,7 @@ completed     обход завершён
 GET /api/field/tasks/{round_id}
 ```
 
-Назначение: получить маршрут, оборудование и связанную форму проверки.
+Назначение: получить маршрут, оборудование, связанную форму проверки, уже отправленные результаты чек-листа и параметры оборудования с допусками.
 
 Headers:
 
@@ -194,12 +194,61 @@ Response:
   },
   "checklist_template": {
     "id": "TPL-EVERYDAY-SAFETY-02",
-    "items": []
-  }
+    "items": [
+      {
+        "id": "TPL-EVERYDAY-SAFETY-02-ITEM-2",
+        "seq_no": 2,
+        "question": "Давление на выходе компрессора",
+        "answer_type": "number",
+        "required_flag": true,
+        "norm_ref": "PRESSURE_OUT"
+      }
+    ]
+  },
+  "checklist_results": [
+    {
+      "id": "a7cdaab8-26df-4e85-bf55-f97d7a0333c7",
+      "checklist_instance_id": "CL-2026-04-17-555",
+      "item_template_id": "TPL-EVERYDAY-SAFETY-02-ITEM-1",
+      "equipment_id": "EQ-KC0103",
+      "route_step_id": "ROUTE-KC0103-STEP-1",
+      "result_code": "ok",
+      "result_value": {
+        "value": true
+      },
+      "comment": "Кожухи и блокировки на месте",
+      "status": "normal"
+    }
+  ],
+  "equipment_parameters": [
+    {
+      "equipment_id": "EQ-KC0103",
+      "parameter_def": {
+        "id": "PARAM-COMPRESSOR-PRESSURE-OUT",
+        "equipment_type_id": "compressor",
+        "code": "PRESSURE_OUT",
+        "name": "Давление на выходе компрессора",
+        "unit": "MPa",
+        "data_type": "number",
+        "min_value": 1.4,
+        "max_value": 1.6,
+        "critical_min": 1.3,
+        "critical_max": 1.7
+      }
+    }
+  ]
 }
 ```
 
 Примечание: мобильное приложение не должно показывать полный чек-лист заранее как основной сценарий. Форма проверки открывается после успешного сканирования оборудования.
+
+`equipment_parameters` нужен для отправки показаний в:
+
+```http
+POST /api/field/equipment/{equipment_id}/readings
+```
+
+Мобильное приложение берёт `parameter_def.id` и передаёт его как `parameter_def_id`.
 
 ---
 
@@ -217,7 +266,7 @@ Headers:
 Authorization: Bearer dev-token
 ```
 
-Response:
+Response: полный объект `RoundRead`.
 
 ```json
 {
@@ -266,7 +315,7 @@ Request:
 }
 ```
 
-Response:
+Response: полный объект `RoundRead`.
 
 ```json
 {
@@ -331,6 +380,8 @@ POST /api/field/checklists/{checklist_instance_id}/items/{item_template_id}/resu
 
 Назначение: сохранить ответ работника по конкретному пункту формы проверки.
 
+Важно: результат формы можно отправлять только после успешного подтверждения контрольной точки через QR/NFC. В request обязательно передаётся `route_step_id`.
+
 Headers:
 
 ```http
@@ -343,6 +394,7 @@ Request для boolean-поля:
 ```json
 {
   "equipment_id": "EQ-KC0103",
+  "route_step_id": "ROUTE-KC0103-STEP-1",
   "result_code": "ok",
   "result_value": {
     "value": true
@@ -356,6 +408,7 @@ Request для числового поля:
 ```json
 {
   "equipment_id": "EQ-KC0103",
+  "route_step_id": "ROUTE-KC0103-STEP-1",
   "result_code": "ok",
   "result_value": {
     "value": 1.5,
@@ -374,6 +427,7 @@ Response:
     "checklist_instance_id": "CL-2026-04-17-555",
     "item_template_id": "TPL-EVERYDAY-SAFETY-02-ITEM-1",
     "equipment_id": "EQ-KC0103",
+    "route_step_id": "ROUTE-KC0103-STEP-1",
     "result_code": "ok",
     "result_value": {
       "value": true
@@ -397,6 +451,14 @@ warning    есть отклонение
 critical   критическое отклонение
 ```
 
+Ошибки:
+
+```text
+409 Conflict   точка маршрута не подтверждена через QR/NFC
+409 Conflict   route_step_id не передан
+403 Forbidden  чек-лист назначен другому работнику
+```
+
 ---
 
 ### Отправить показание оборудования
@@ -406,6 +468,8 @@ POST /api/field/equipment/{equipment_id}/readings
 ```
 
 Назначение: сохранить измеренное значение оборудования и автоматически проверить его по нормам.
+
+Важно: показание можно отправлять только после успешного подтверждения контрольной точки через QR/NFC. В request обязательно передаётся `route_step_id`.
 
 Headers:
 
@@ -509,6 +573,7 @@ Response:
 
 ```text
 409 Conflict   не заполнены обязательные пункты формы
+409 Conflict   не все обязательные точки маршрута подтверждены через QR/NFC
 403 Forbidden  обход назначен другому работнику
 ```
 
@@ -565,6 +630,7 @@ GET  /api/field/tasks/{round_id}
 POST /api/field/tasks/{round_id}/start
 POST /api/field/tasks/{round_id}/steps/{route_step_id}/confirm
 POST /api/field/checklists/{checklist_instance_id}/items/{item_template_id}/result
+POST /api/field/attachments
 POST /api/field/equipment/{equipment_id}/readings
 POST /api/field/tasks/{round_id}/finish
 ```
@@ -573,6 +639,10 @@ POST /api/field/tasks/{round_id}/finish
 
 - Полная форма проверки не должна считаться доступной до успешного QR/NFC-подтверждения точки.
 - При сканировании нужно отправлять `confirm_by` и `scanned_value`.
+- При отправке формы и показаний нужно передавать `route_step_id`.
+- Для показаний нужно брать `parameter_def_id` из `equipment_parameters[].parameter_def.id` в карточке обхода.
+- Для восстановления экрана после пересоздания нужно читать `checklist_results` из карточки обхода.
+- Фотофиксацию нужно отправлять после создания результата пункта чек-листа, привязывая файл к `checklist_item_result`.
 - Если сервер вернул `409 Conflict`, форму открывать нельзя.
 - Если нет связи, мобильное приложение в будущем должно сохранить действие локально через Room и синхронизировать позже.
 - `completion_pct` можно использовать для отображения прогресса заполнения формы.
@@ -592,6 +662,38 @@ item_template_id 2:    TPL-EVERYDAY-SAFETY-02-ITEM-2
 parameter_def_id:      PARAM-COMPRESSOR-PRESSURE-OUT
 qr_tag:                QR:EQ-KC0103
 nfc_tag:               NFC:04AABB11CC
+```
+
+## Фотофиксация
+
+```http
+POST /api/field/attachments
+Authorization: Bearer dev-token
+Content-Type: multipart/form-data
+```
+
+Form fields:
+
+- `entity_type` - например `checklist_item_result`;
+- `entity_id` - id результата пункта чек-листа;
+- `payload_json` - дополнительная информация строкой JSON;
+- `file` - фото или медиафайл.
+
+Пример:
+
+```bash
+curl -X POST http://localhost/api/field/attachments \
+  -H "Authorization: Bearer dev-token" \
+  -F "entity_type=checklist_item_result" \
+  -F "entity_id=a7cdaab8-26df-4e85-bf55-f97d7a0333c7" \
+  -F "payload_json={\"caption\":\"Фото дефекта\"}" \
+  -F "file=@photo.jpg;type=image/jpeg"
+```
+
+Ответ содержит `download_url`, по которому файл можно открыть через backend:
+
+```http
+GET /api/field/attachments/{attachment_id}/download
 ```
 
 Перед проверкой demo-данных можно вызвать:

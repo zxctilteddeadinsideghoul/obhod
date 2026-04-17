@@ -7,6 +7,9 @@ class Settings(BaseSettings):
     service_name: str = "field-service"
     database_url: str = "postgresql://obhod:obhod@postgres:5432/obhod"
     minio_endpoint: str = "http://minio:9000"
+    minio_access_key: str = "minioadmin"
+    minio_secret_key: str = "minioadmin"
+    minio_bucket: str = "obhod-media"
     kafka_bootstrap_servers: str = "redpanda:9092"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")

@@ -1,19 +1,4 @@
-# Dependencies
 node_modules/
-
-# Build outputs
-.next/
-.vite/
 dist/
-build/
-coverage/
-
-# Local environment overrides
-.env
-.env.local
-.env.*.local
-
-# Editor and OS files
-.idea/
-.vscode/
 .DS_Store
+.env

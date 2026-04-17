@@ -40,3 +40,38 @@ For admin-only scaffold endpoints, pass:
 ```text
 Authorization: Bearer dev-admin-token
 ```
+
+## Smoke Tests
+
+With Docker Compose services running:
+
+```bash
+python3 scripts/smoke_test.py
+```
+
+The smoke test covers:
+
+- auth and role forwarding through Traefik;
+- demo seed;
+- admin creation of equipment, checklist template, route and round;
+- worker task flow: start, QR confirmation, checklist submission and finish;
+- equipment reading submission;
+- attachment upload to MinIO, listing and download;
+- supervisor reports and analytics;
+- basic RBAC checks.
+
+Optional environment variables:
+
+```text
+SMOKE_BASE_URL=http://127.0.0.1
+SMOKE_WORKER_TOKEN=dev-token
+SMOKE_ADMIN_TOKEN=dev-admin-token
+```
+
+## Domain Unit Tests
+
+Severity and stability calculators can be checked without Docker:
+
+```bash
+PYTHONPATH=services/field-service python3 services/field-service/tests/test_severity_calculators.py
+```
