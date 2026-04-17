@@ -190,6 +190,15 @@ def main() -> int:
         f"Task detail has no compressor pressure parameter: {demo_detail['equipment_parameters']}",
     )
 
+    log("worker: seeded QR route can be confirmed before reading")
+    request("POST", "/api/field/tasks/ROUND-2026-04-17-000123/start", token=WORKER_TOKEN)
+    request(
+        "POST",
+        "/api/field/tasks/ROUND-2026-04-17-000123/steps/ROUTE-KC0103-STEP-1/confirm",
+        token=WORKER_TOKEN,
+        json_body={"confirm_by": "qr", "scanned_value": "QR:EQ-KC0103"},
+    )
+
     log("rbac: worker cannot create equipment")
     request(
         "POST",

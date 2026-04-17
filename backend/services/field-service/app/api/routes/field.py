@@ -344,6 +344,8 @@ async def submit_equipment_reading(
         return await use_case.execute(equipment_id, payload, x_user_id)
     except KeyError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Equipment or parameter definition not found")
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
 
 
 @router.get("/routes", response_model=list[RouteRead])
