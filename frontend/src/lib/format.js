@@ -8,10 +8,14 @@ export function formatDateTime(value) {
     return value;
   }
 
-  return new Intl.DateTimeFormat("ru-RU", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
+  const pad = (part) => String(part).padStart(2, "0");
+  const day = pad(date.getDate());
+  const month = pad(date.getMonth() + 1);
+  const year = date.getFullYear();
+  const hours = pad(date.getHours());
+  const minutes = pad(date.getMinutes());
+
+  return `${day}.${month}.${year} ${hours}:${minutes}`;
 }
 
 export function formatPercent(value) {
@@ -51,6 +55,36 @@ export function sentenceFromStatus(status) {
   };
 
   return labels[status] || status || "Не указан";
+}
+
+export function equipmentStatusLabel(status) {
+  const labels = {
+    in_operation: "В работе",
+    warning: "Есть замечания",
+    critical: "Требует внимания",
+    maintenance: "На обслуживании",
+    out_of_service: "Выведено из эксплуатации",
+  };
+
+  return labels[status] || sentenceFromStatus(status);
+}
+
+export function equipmentStatusTone(status) {
+  const normalized = String(status || "").toLowerCase();
+
+  if (normalized === "in_operation") {
+    return "success";
+  }
+
+  if (["warning", "maintenance"].includes(normalized)) {
+    return "warning";
+  }
+
+  if (["critical", "out_of_service"].includes(normalized)) {
+    return "danger";
+  }
+
+  return statusTone(status);
 }
 
 export function getReadingTone(reading) {

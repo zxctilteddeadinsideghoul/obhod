@@ -3,15 +3,72 @@ import { useAuth } from "../auth/AuthContext";
 import { Card, EmptyState, ErrorState, LoadingState, PageHeader, StatusBadge } from "../components/Ui";
 import { api } from "../lib/api";
 import { useAsyncResource } from "../lib/hooks";
-import { describeReadingRange } from "../lib/format";
+import { describeReadingRange, equipmentStatusLabel, equipmentStatusTone, formatDateTime } from "../lib/format";
+
+const FIELD_LABELS = {
+  manufacturer: "Производитель",
+  production_date: "Дата выпуска",
+  service_class: "Класс обслуживания",
+  pressure_stage: "Ступень давления",
+  power_kw: "Мощность, кВт",
+  reserve_line: "Резервная линия",
+  diameter: "Диаметр",
+  material: "Материал",
+  schema_version: "Версия схемы",
+  last_inspection_at: "Последний осмотр",
+  health_index: "Индекс состояния",
+  tags: "Теги",
+  last_warning_at: "Последнее предупреждение",
+  vibration_alarm_count: "Срабатываний вибрации",
+  seal_state: "Состояние уплотнения",
+  corrosion_risk: "Риск коррозии",
+  last_repair_order: "Последний ремонтный ордер",
+};
+
+function prettifyLabel(key) {
+  return FIELD_LABELS[key] || key.replaceAll("_", " ");
+}
+
+function formatValue(key, value) {
+  if (value === null || value === undefined || value === "") {
+    return "—";
+  }
+
+  if (typeof value === "boolean") {
+    return value ? "Да" : "Нет";
+  }
+
+  if (Array.isArray(value)) {
+    return value.length ? value.join(", ") : "—";
+  }
+
+  if (typeof value === "object") {
+    return Object.entries(value)
+      .map(([nestedKey, nestedValue]) => `${prettifyLabel(nestedKey)}: ${formatValue(nestedKey, nestedValue)}`)
+      .join("; ");
+  }
+
+  if (key.endsWith("_at") || key.endsWith("_date")) {
+    return formatDateTime(value);
+  }
+
+  return String(value);
+}
 
 function renderPairs(record) {
   return Object.entries(record || {}).map(([key, value]) => (
     <div className="kv-row" key={key}>
-      <span>{key}</span>
-      <strong>{typeof value === "object" ? JSON.stringify(value) : String(value)}</strong>
+      <span>{prettifyLabel(key)}</span>
+      <strong>{formatValue(key, value)}</strong>
     </div>
   ));
+}
+
+function describeCriticalRange(parameter) {
+  const min = parameter?.critical_min ?? "—";
+  const max = parameter?.critical_max ?? "—";
+  const unit = parameter?.unit ? ` ${parameter.unit}` : "";
+  return `${min}-${max}${unit}`;
 }
 
 export function EquipmentPage() {
@@ -28,7 +85,7 @@ export function EquipmentPage() {
       <PageHeader
         eyebrow="Карточки оборудования"
         title="Оборудование"
-        subtitle="Просмотр карточек, паспортных полей, тегов QR/NFC и расширенных JSON-атрибутов."
+        subtitle="Просмотр карточек, паспортных данных, тегов QR/NFC и текущего состояния оборудования."
       />
 
       <div className="master-detail">
@@ -51,7 +108,7 @@ export function EquipmentPage() {
                   <span>{item.tech_no || item.code || item.id}</span>
                 </div>
                 <div className="list-item-meta">
-                  <StatusBadge status={item.state_id} tone="info" />
+                  <StatusBadge status={equipmentStatusLabel(item.state_id)} tone={equipmentStatusTone(item.state_id)} />
                   <small>{item.location || "Без локации"}</small>
                 </div>
               </button>
@@ -108,11 +165,9 @@ export function EquipmentPage() {
                           <strong>{parameter.label || parameter.code}</strong>
                           <span>{parameter.code}</span>
                         </div>
-                        <span>Ед.: {parameter.unit || "—"}</span>
-                        <span>Норма: {describeReadingRange(parameter)}</span>
-                        <span>
-                          Критично: {parameter.critical_min ?? "—"} - {parameter.critical_max ?? "—"} {parameter.unit || ""}
-                        </span>
+                        <span>ед. {parameter.unit || "—"}</span>
+                        <span>доп. {describeReadingRange(parameter)}</span>
+                        <span>крит. {describeCriticalRange(parameter)}</span>
                         <StatusBadge status="Контроль" tone="info" />
                       </div>
                     ))}
@@ -123,14 +178,14 @@ export function EquipmentPage() {
               </Card>
 
               <div className="split-grid">
-                <Card title="passport_json">
+                <Card title="Паспортные данные" subtitle="Основные сведения об объекте из технического паспорта">
                   {Object.keys(detailState.data.passport_json || {}).length ? (
                     <div className="kv-list">{renderPairs(detailState.data.passport_json)}</div>
                   ) : (
                     <EmptyState title="Паспортные атрибуты пусты" description="JSON-паспорт пока не заполнен." />
                   )}
                 </Card>
-                <Card title="snapshot_json">
+                <Card title="Текущее состояние" subtitle="Оперативные признаки, последние события и служебные атрибуты">
                   {Object.keys(detailState.data.snapshot_json || {}).length ? (
                     <div className="kv-list">{renderPairs(detailState.data.snapshot_json)}</div>
                   ) : (

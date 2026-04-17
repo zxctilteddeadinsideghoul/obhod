@@ -1,7 +1,7 @@
 import { useAuth } from "../auth/AuthContext";
 import { Card, EmptyState, ErrorState, LoadingState, MetricCard, PageHeader } from "../components/Ui";
 import { api } from "../lib/api";
-import { formatDateTime, formatPercent } from "../lib/format";
+import { formatDateTime } from "../lib/format";
 import { useAsyncResource } from "../lib/hooks";
 
 async function loadAnalytics(token) {
@@ -40,11 +40,6 @@ export function AnalyticsPage() {
             <MetricCard label="Всего обходов" value={data.summary.rounds_total} />
             <MetricCard label="Завершено" value={data.summary.rounds_completed} tone="success" />
             <MetricCard label="Открытых дефектов" value={data.summary.defects_open} tone="danger" />
-            <MetricCard
-              label="Среднее заполнение"
-              value={formatPercent(Math.round(data.summary.avg_completion_pct || 0))}
-              tone="info"
-            />
           </div>
 
           <div className="split-grid">

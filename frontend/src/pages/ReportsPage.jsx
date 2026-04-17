@@ -39,7 +39,7 @@ export function ReportsPage() {
         subtitle="Лента обходов из report-service с прогрессом, замечаниями и статусом выполнения."
       />
 
-      <div className="metrics-grid">
+      <div className="metrics-grid reports-metrics-grid">
         <MetricCard label="Сводок" value={rows.length} />
         <MetricCard label="Запланировано" value={summary?.rounds_planned || 0} tone="warning" />
         <MetricCard label="В работе" value={summary?.rounds_in_progress || 0} tone="info" />

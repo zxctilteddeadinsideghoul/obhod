@@ -410,6 +410,57 @@ const seedData = {
         },
       ],
     },
+    {
+      id: "ROUND-2026-04-17-000126",
+      route_id: "ROUTE-KC0103",
+      employee_id: "EMP-318",
+      employee_name: "Алексей Миронов",
+      shift_id: "SHIFT-B-2026-04-17",
+      status: "completed",
+      planned_start: "2026-04-17T20:00:00+05:00",
+      planned_end: "2026-04-17T21:00:00+05:00",
+      completion_pct: 100,
+      checklist_template_id: "CHK-KC0103",
+      checklist_instance: {
+        id: "CLI-2026-04-17-004",
+        status: "completed",
+        completion_pct: 100,
+        started_at: "2026-04-17T20:02:00+05:00",
+        finished_at: "2026-04-17T20:46:00+05:00",
+      },
+      readings: [
+        {
+          equipment_id: "EQ-KC0103",
+          checkpoint_id: "PI-2",
+          parameter_code: "PRESSURE_OUT",
+          value: 1.52,
+          unit: "MPa",
+          within_limits: true,
+          comment: "параметр в норме",
+        },
+      ],
+      defects: [],
+      journal: [
+        {
+          id: "JE-0007",
+          event_ts: "2026-04-17T20:02:00+05:00",
+          event_type: "round_started",
+          title: "Обход начат",
+        },
+        {
+          id: "JE-0008",
+          event_ts: "2026-04-17T20:19:00+05:00",
+          event_type: "checkpoint_confirmed",
+          title: "Подтверждена точка PI-2",
+        },
+        {
+          id: "JE-0009",
+          event_ts: "2026-04-17T20:46:00+05:00",
+          event_type: "round_completed",
+          title: "Обход успешно завершен",
+        },
+      ],
+    },
   ],
 };
 
