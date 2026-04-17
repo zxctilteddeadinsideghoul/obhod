@@ -1,6 +1,6 @@
 import json
 
-from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Query, UploadFile, status
 from fastapi.responses import Response
 
 from app.api.dependencies import (
@@ -15,8 +15,10 @@ from app.api.dependencies import (
     get_get_route_use_case,
     get_get_task_detail_use_case,
     get_finish_round_use_case,
+    get_get_defect_use_case,
     get_list_attachments_use_case,
     get_list_checklist_templates_use_case,
+    get_list_defects_use_case,
     get_list_equipment_use_case,
     get_list_my_rounds_use_case,
     get_list_routes_use_case,
@@ -26,6 +28,8 @@ from app.api.dependencies import (
     get_submit_checklist_item_result_use_case,
     get_submit_equipment_reading_use_case,
     get_upload_attachment_use_case,
+    get_update_defect_severity_use_case,
+    get_update_defect_status_use_case,
 )
 from app.schemas import (
     AttachmentRead,
@@ -33,6 +37,9 @@ from app.schemas import (
     ChecklistItemResultCreate,
     ChecklistItemResultSubmitRead,
     ChecklistTemplateRead,
+    DefectRead,
+    DefectSeverityUpdate,
+    DefectStatusUpdate,
     EquipmentCreate,
     EquipmentParameterReadingCreate,
     EquipmentParameterReadingSubmitRead,
@@ -54,12 +61,14 @@ from app.use_cases import (
     CreateRouteUseCase,
     DownloadAttachmentUseCase,
     FinishRoundUseCase,
+    GetDefectUseCase,
     GetChecklistTemplateUseCase,
     GetEquipmentUseCase,
     GetRouteUseCase,
     GetTaskDetailUseCase,
     ListChecklistTemplatesUseCase,
     ListAttachmentsUseCase,
+    ListDefectsUseCase,
     ListEquipmentUseCase,
     ListMyRoundsUseCase,
     ListRoutesUseCase,
@@ -69,6 +78,8 @@ from app.use_cases import (
     SubmitChecklistItemResultUseCase,
     SubmitEquipmentReadingUseCase,
     UploadAttachmentUseCase,
+    UpdateDefectSeverityUseCase,
+    UpdateDefectStatusUseCase,
 )
 
 
@@ -229,6 +240,79 @@ async def download_attachment(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
     except KeyError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Attachment not found")
+
+
+@router.get("/defects", response_model=list[DefectRead])
+async def list_defects(
+    x_user_role: str = Header(),
+    defect_status: str | None = Query(default=None, alias="status"),
+    severity: str | None = None,
+    equipment_id: str | None = None,
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    use_case: ListDefectsUseCase = Depends(get_list_defects_use_case),
+) -> list[DefectRead]:
+    try:
+        return await use_case.execute(
+            user_role=x_user_role,
+            status=defect_status,
+            severity=severity,
+            equipment_id=equipment_id,
+            limit=limit,
+            offset=offset,
+        )
+    except PermissionError:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin role required")
+
+
+@router.get("/defects/{defect_id}", response_model=DefectRead)
+async def get_defect(
+    defect_id: str,
+    x_user_role: str = Header(),
+    use_case: GetDefectUseCase = Depends(get_get_defect_use_case),
+) -> DefectRead:
+    try:
+        return await use_case.execute(defect_id, x_user_role)
+    except PermissionError:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin role required")
+    except KeyError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Defect not found")
+
+
+@router.patch("/defects/{defect_id}/status", response_model=DefectRead)
+async def update_defect_status(
+    defect_id: str,
+    payload: DefectStatusUpdate,
+    x_user_id: str = Header(),
+    x_user_role: str = Header(),
+    use_case: UpdateDefectStatusUseCase = Depends(get_update_defect_status_use_case),
+) -> DefectRead:
+    try:
+        return await use_case.execute(defect_id, payload, x_user_id, x_user_role)
+    except PermissionError:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin role required")
+    except KeyError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Defect not found")
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+
+
+@router.patch("/defects/{defect_id}/severity", response_model=DefectRead)
+async def update_defect_severity(
+    defect_id: str,
+    payload: DefectSeverityUpdate,
+    x_user_id: str = Header(),
+    x_user_role: str = Header(),
+    use_case: UpdateDefectSeverityUseCase = Depends(get_update_defect_severity_use_case),
+) -> DefectRead:
+    try:
+        return await use_case.execute(defect_id, payload, x_user_id, x_user_role)
+    except PermissionError:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin role required")
+    except KeyError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Defect not found")
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
 
 
 @router.get("/equipment", response_model=list[EquipmentRead])

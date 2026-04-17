@@ -306,6 +306,34 @@ class AttachmentRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class DefectRead(BaseModel):
+    id: str
+    org_id: str
+    equipment_id: str
+    detected_at: datetime
+    source_checklist_id: str | None = None
+    checkpoint_id: str | None = None
+    created_by: str | None = None
+    title: str
+    description: str | None = None
+    severity: str
+    attention_marker: bool
+    status: str
+    payload_json: dict = Field(default_factory=dict)
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class DefectStatusUpdate(BaseModel):
+    status: str
+    comment: str | None = None
+
+
+class DefectSeverityUpdate(BaseModel):
+    severity: str
+    comment: str | None = None
+
+
 class TaskSummaryRead(BaseModel):
     id: str
     status: str

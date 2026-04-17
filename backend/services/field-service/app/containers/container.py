@@ -22,6 +22,7 @@ from app.use_cases import (
     CreateRouteUseCase,
     DownloadAttachmentUseCase,
     FinishRoundUseCase,
+    GetDefectUseCase,
     GetChecklistTemplateUseCase,
     GetEquipmentUseCase,
     GetRouteUseCase,
@@ -29,6 +30,7 @@ from app.use_cases import (
     ListChecklistTemplatesUseCase,
     ListAttachmentsUseCase,
     ListEquipmentUseCase,
+    ListDefectsUseCase,
     ListMyRoundsUseCase,
     ListRoutesUseCase,
     ListTasksUseCase,
@@ -37,6 +39,8 @@ from app.use_cases import (
     SubmitChecklistItemResultUseCase,
     SubmitEquipmentReadingUseCase,
     UploadAttachmentUseCase,
+    UpdateDefectSeverityUseCase,
+    UpdateDefectStatusUseCase,
 )
 from app.core.config import get_settings
 from app.services import ObjectStorage
@@ -101,6 +105,24 @@ class Container(containers.DeclarativeContainer):
         DownloadAttachmentUseCase,
         attachments_repository=attachments_repository,
         object_storage=object_storage,
+    )
+    list_defects_use_case = providers.Factory(
+        ListDefectsUseCase,
+        repository=defects_repository,
+    )
+    get_defect_use_case = providers.Factory(
+        GetDefectUseCase,
+        repository=defects_repository,
+    )
+    update_defect_status_use_case = providers.Factory(
+        UpdateDefectStatusUseCase,
+        session=db_session,
+        repository=defects_repository,
+    )
+    update_defect_severity_use_case = providers.Factory(
+        UpdateDefectSeverityUseCase,
+        session=db_session,
+        repository=defects_repository,
     )
     seed_demo_data_use_case = providers.Factory(SeedDemoDataUseCase, repository=demo_data_repository)
     list_equipment_use_case = providers.Factory(ListEquipmentUseCase, repository=equipment_repository)

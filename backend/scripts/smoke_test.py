@@ -404,6 +404,7 @@ def main() -> int:
     detail = request("GET", f"/api/reports/rounds/{round_id}", token=ADMIN_TOKEN).json()
     assert_true(detail["round"]["id"] == round_id, f"Unexpected report detail: {detail}")
     assert_true(len(detail["defects"]) >= 1, f"Auto-created defect not present in report detail: {detail}")
+    defect_id = detail["defects"][0]["id"]
     assert_true(
         detail["defects"][0]["severity"] in {"info", "low", "medium", "high", "critical"},
         f"Unexpected defect severity: {detail['defects']}",
@@ -412,6 +413,27 @@ def main() -> int:
         any(item["id"] == attachment_id for item in detail["attachments"]),
         f"Attachment not present in report detail: {detail.get('attachments')}",
     )
+
+    log("field defects: list, detail and update")
+    defects = request("GET", "/api/field/defects", token=ADMIN_TOKEN).json()
+    assert_true(any(item["id"] == defect_id for item in defects), f"Defect not listed: {defects}")
+    defect = request("GET", f"/api/field/defects/{defect_id}", token=ADMIN_TOKEN).json()
+    assert_true(defect["payload_json"].get("severity"), f"Defect has no severity explanation: {defect}")
+    updated_status = request(
+        "PATCH",
+        f"/api/field/defects/{defect_id}/status",
+        token=ADMIN_TOKEN,
+        json_body={"status": "in_review", "comment": "Smoke review"},
+    ).json()
+    assert_true(updated_status["status"] == "in_review", f"Defect status was not updated: {updated_status}")
+    updated_severity = request(
+        "PATCH",
+        f"/api/field/defects/{defect_id}/severity",
+        token=ADMIN_TOKEN,
+        json_body={"severity": "medium", "comment": "Smoke priority override"},
+    ).json()
+    assert_true(updated_severity["severity"] == "medium", f"Defect severity was not updated: {updated_severity}")
+    request("GET", "/api/field/defects", token=WORKER_TOKEN, expected=403)
 
     log("reports: analytics")
     equipment_analytics = request("GET", "/api/reports/analytics/equipment", token=ADMIN_TOKEN).json()
