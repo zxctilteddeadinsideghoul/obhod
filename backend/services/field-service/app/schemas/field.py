@@ -91,3 +91,34 @@ class ChecklistTemplateRead(BaseModel):
     snapshot_json: dict = Field(default_factory=dict)
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class ChecklistInstanceRead(BaseModel):
+    id: str
+    round_instance_id: str
+    checklist_template_id: str
+    started_at: datetime | None = None
+    finished_at: datetime | None = None
+    status: str
+    completion_pct: int
+    snapshot_json: dict = Field(default_factory=dict)
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class TaskSummaryRead(BaseModel):
+    id: str
+    status: str
+    route_id: str
+    route_name: str
+    planned_start: datetime
+    planned_end: datetime | None = None
+    completion_pct: int = 0
+
+
+class TaskDetailRead(BaseModel):
+    round: RoundRead
+    route: RouteRead
+    equipment: list[EquipmentRead]
+    checklist_instance: ChecklistInstanceRead | None = None
+    checklist_template: ChecklistTemplateRead | None = None

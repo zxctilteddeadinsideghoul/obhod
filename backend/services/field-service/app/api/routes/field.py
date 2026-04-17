@@ -1,9 +1,30 @@
-from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 
-from app.containers import Container
-from app.schemas import ChecklistTemplateRead, EquipmentRead, RouteRead, RoundRead
-from app.services import FieldService
+from app.api.dependencies import (
+    get_get_checklist_template_use_case,
+    get_get_equipment_use_case,
+    get_get_route_use_case,
+    get_get_task_detail_use_case,
+    get_list_checklist_templates_use_case,
+    get_list_equipment_use_case,
+    get_list_my_rounds_use_case,
+    get_list_routes_use_case,
+    get_list_tasks_use_case,
+    get_seed_demo_data_use_case,
+)
+from app.schemas import ChecklistTemplateRead, EquipmentRead, RouteRead, RoundRead, TaskDetailRead, TaskSummaryRead
+from app.use_cases import (
+    GetChecklistTemplateUseCase,
+    GetEquipmentUseCase,
+    GetRouteUseCase,
+    GetTaskDetailUseCase,
+    ListChecklistTemplatesUseCase,
+    ListEquipmentUseCase,
+    ListMyRoundsUseCase,
+    ListRoutesUseCase,
+    ListTasksUseCase,
+    SeedDemoDataUseCase,
+)
 
 
 router = APIRouter(prefix="/api/field", tags=["field"])
@@ -29,80 +50,96 @@ async def whoami(
 
 
 @router.post("/admin/seed-demo")
-@inject
 async def seed_demo(
     x_user_role: str | None = Header(default=None),
-    service: FieldService = Depends(Provide[Container.field_service]),
+    use_case: SeedDemoDataUseCase = Depends(get_seed_demo_data_use_case),
 ) -> dict[str, str]:
     if x_user_role != "ADMIN":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin role required")
-    return await service.seed_demo_data()
+    return await use_case.execute()
 
 
 @router.get("/equipment", response_model=list[EquipmentRead])
-@inject
 async def list_equipment(
-    service: FieldService = Depends(Provide[Container.field_service]),
+    use_case: ListEquipmentUseCase = Depends(get_list_equipment_use_case),
 ) -> list[EquipmentRead]:
-    return await service.list_equipment()
+    return await use_case.execute()
 
 
 @router.get("/equipment/{equipment_id}", response_model=EquipmentRead)
-@inject
 async def get_equipment(
     equipment_id: str,
-    service: FieldService = Depends(Provide[Container.field_service]),
+    use_case: GetEquipmentUseCase = Depends(get_get_equipment_use_case),
 ) -> EquipmentRead:
     try:
-        return await service.get_equipment(equipment_id)
+        return await use_case.execute(equipment_id)
     except KeyError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Equipment not found")
 
 
 @router.get("/routes", response_model=list[RouteRead])
-@inject
 async def list_routes(
-    service: FieldService = Depends(Provide[Container.field_service]),
+    use_case: ListRoutesUseCase = Depends(get_list_routes_use_case),
 ) -> list[RouteRead]:
-    return await service.list_routes()
+    return await use_case.execute()
 
 
 @router.get("/routes/{route_id}", response_model=RouteRead)
-@inject
 async def get_route(
     route_id: str,
-    service: FieldService = Depends(Provide[Container.field_service]),
+    use_case: GetRouteUseCase = Depends(get_get_route_use_case),
 ) -> RouteRead:
     try:
-        return await service.get_route(route_id)
+        return await use_case.execute(route_id)
     except KeyError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Route not found")
 
 
 @router.get("/rounds/my", response_model=list[RoundRead])
-@inject
 async def list_my_rounds(
     x_user_id: str = Header(),
-    service: FieldService = Depends(Provide[Container.field_service]),
+    use_case: ListMyRoundsUseCase = Depends(get_list_my_rounds_use_case),
 ) -> list[RoundRead]:
-    return await service.list_my_rounds(x_user_id)
+    return await use_case.execute(x_user_id)
+
+
+@router.get("/tasks/my", response_model=list[TaskSummaryRead])
+async def list_my_tasks(
+    x_user_id: str = Header(),
+    x_user_role: str = Header(),
+    use_case: ListTasksUseCase = Depends(get_list_tasks_use_case),
+) -> list[TaskSummaryRead]:
+    return await use_case.execute(x_user_id, x_user_role)
+
+
+@router.get("/tasks/{round_id}", response_model=TaskDetailRead)
+async def get_task(
+    round_id: str,
+    x_user_id: str = Header(),
+    x_user_role: str = Header(),
+    use_case: GetTaskDetailUseCase = Depends(get_get_task_detail_use_case),
+) -> TaskDetailRead:
+    try:
+        return await use_case.execute(round_id, x_user_id, x_user_role)
+    except KeyError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+    except PermissionError:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Task is not assigned to current worker")
 
 
 @router.get("/checklists/templates", response_model=list[ChecklistTemplateRead])
-@inject
 async def list_checklist_templates(
-    service: FieldService = Depends(Provide[Container.field_service]),
+    use_case: ListChecklistTemplatesUseCase = Depends(get_list_checklist_templates_use_case),
 ) -> list[ChecklistTemplateRead]:
-    return await service.list_checklist_templates()
+    return await use_case.execute()
 
 
 @router.get("/checklists/templates/{template_id}", response_model=ChecklistTemplateRead)
-@inject
 async def get_checklist_template(
     template_id: str,
-    service: FieldService = Depends(Provide[Container.field_service]),
+    use_case: GetChecklistTemplateUseCase = Depends(get_get_checklist_template_use_case),
 ) -> ChecklistTemplateRead:
     try:
-        return await service.get_checklist_template(template_id)
+        return await use_case.execute(template_id)
     except KeyError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Checklist template not found")

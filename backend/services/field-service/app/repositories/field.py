@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models import (
@@ -19,83 +19,122 @@ from app.models.field import RouteStep
 
 
 class FieldRepository:
-    def __init__(self, session_factory: async_sessionmaker[AsyncSession]) -> None:
-        self.session_factory = session_factory
-
-    def _session(self) -> AsyncSession:
-        return self.session_factory()
+    def __init__(self, session: AsyncSession) -> None:
+        self.session = session
 
     async def list_equipment(self) -> list[Equipment]:
-        async with self._session() as session:
-            result = await session.execute(select(Equipment).order_by(Equipment.name))
-            return list(result.scalars().all())
+        result = await self.session.execute(select(Equipment).order_by(Equipment.name))
+        return list(result.scalars().all())
 
     async def get_equipment(self, equipment_id: str) -> Equipment:
-        async with self._session() as session:
-            equipment = await session.get(Equipment, equipment_id)
-            if equipment is None:
-                raise KeyError(f"Equipment {equipment_id} not found")
-            return equipment
+        equipment = await self.session.get(Equipment, equipment_id)
+        if equipment is None:
+            raise KeyError(f"Equipment {equipment_id} not found")
+        return equipment
 
     async def list_routes(self) -> list[RouteTemplate]:
-        async with self._session() as session:
-            result = await session.execute(
-                select(RouteTemplate)
-                .options(selectinload(RouteTemplate.steps).selectinload(RouteStep.equipment))
-                .order_by(RouteTemplate.name)
-            )
-            return list(result.scalars().unique().all())
+        result = await self.session.execute(
+            select(RouteTemplate)
+            .options(selectinload(RouteTemplate.steps).selectinload(RouteStep.equipment))
+            .order_by(RouteTemplate.name)
+        )
+        return list(result.scalars().unique().all())
 
     async def get_route(self, route_id: str) -> RouteTemplate:
-        async with self._session() as session:
-            result = await session.execute(
-                select(RouteTemplate)
-                .where(RouteTemplate.id == route_id)
-                .options(selectinload(RouteTemplate.steps).selectinload(RouteStep.equipment))
-            )
-            route = result.scalars().unique().one_or_none()
-            if route is None:
-                raise KeyError(f"Route {route_id} not found")
-            return route
+        result = await self.session.execute(
+            select(RouteTemplate)
+            .where(RouteTemplate.id == route_id)
+            .options(selectinload(RouteTemplate.steps).selectinload(RouteStep.equipment))
+        )
+        route = result.scalars().unique().one_or_none()
+        if route is None:
+            raise KeyError(f"Route {route_id} not found")
+        return route
 
     async def list_rounds_for_employee(self, employee_id: str) -> list[RoundInstance]:
-        async with self._session() as session:
-            result = await session.execute(
-                select(RoundInstance)
-                .where(RoundInstance.employee_id == employee_id)
-                .options(selectinload(RoundInstance.route_template))
-                .order_by(RoundInstance.planned_start)
+        result = await self.session.execute(
+            select(RoundInstance)
+            .where(RoundInstance.employee_id == employee_id)
+            .options(selectinload(RoundInstance.route_template))
+            .order_by(RoundInstance.planned_start)
+        )
+        return list(result.scalars().all())
+
+    async def list_all_rounds(self) -> list[RoundInstance]:
+        result = await self.session.execute(
+            select(RoundInstance)
+            .options(selectinload(RoundInstance.route_template))
+            .order_by(RoundInstance.planned_start)
+        )
+        return list(result.scalars().all())
+
+    async def get_round(self, round_id: str) -> RoundInstance:
+        result = await self.session.execute(
+            select(RoundInstance)
+            .where(RoundInstance.id == round_id)
+            .options(selectinload(RoundInstance.route_template))
+        )
+        round_instance = result.scalars().one_or_none()
+        if round_instance is None:
+            raise KeyError(f"Round {round_id} not found")
+        return round_instance
+
+    async def get_task_detail(self, round_id: str) -> tuple[RoundInstance, RouteTemplate, list[Equipment], ChecklistInstance | None, ChecklistTemplate | None]:
+        round_result = await self.session.execute(
+            select(RoundInstance)
+            .where(RoundInstance.id == round_id)
+            .options(selectinload(RoundInstance.route_template))
+        )
+        round_instance = round_result.scalars().one_or_none()
+        if round_instance is None:
+            raise KeyError(f"Round {round_id} not found")
+
+        route_result = await self.session.execute(
+            select(RouteTemplate)
+            .where(RouteTemplate.id == round_instance.route_template_id)
+            .options(selectinload(RouteTemplate.steps).selectinload(RouteStep.equipment))
+        )
+        route = route_result.scalars().unique().one()
+        equipment = [step.equipment for step in route.steps]
+
+        checklist_result = await self.session.execute(
+            select(ChecklistInstance)
+            .where(ChecklistInstance.round_instance_id == round_id)
+            .options(
+                selectinload(ChecklistInstance.checklist_template).selectinload(ChecklistTemplate.items),
             )
-            return list(result.scalars().all())
+            .order_by(ChecklistInstance.created_at)
+        )
+        checklist_instance = checklist_result.scalars().unique().first()
+        checklist_template = checklist_instance.checklist_template if checklist_instance else None
+
+        return round_instance, route, equipment, checklist_instance, checklist_template
 
     async def list_checklist_templates(self) -> list[ChecklistTemplate]:
-        async with self._session() as session:
-            result = await session.execute(
-                select(ChecklistTemplate)
-                .options(selectinload(ChecklistTemplate.items))
-                .order_by(ChecklistTemplate.name)
-            )
-            return list(result.scalars().unique().all())
+        result = await self.session.execute(
+            select(ChecklistTemplate)
+            .options(selectinload(ChecklistTemplate.items))
+            .order_by(ChecklistTemplate.name)
+        )
+        return list(result.scalars().unique().all())
 
     async def get_checklist_template(self, template_id: str) -> ChecklistTemplate:
-        async with self._session() as session:
-            result = await session.execute(
-                select(ChecklistTemplate)
-                .where(ChecklistTemplate.id == template_id)
-                .options(selectinload(ChecklistTemplate.items))
-            )
-            template = result.scalars().unique().one_or_none()
-            if template is None:
-                raise KeyError(f"Checklist template {template_id} not found")
-            return template
+        result = await self.session.execute(
+            select(ChecklistTemplate)
+            .where(ChecklistTemplate.id == template_id)
+            .options(selectinload(ChecklistTemplate.items))
+        )
+        template = result.scalars().unique().one_or_none()
+        if template is None:
+            raise KeyError(f"Checklist template {template_id} not found")
+        return template
 
     async def seed_demo_data(self) -> None:
-        async with self._session() as session:
-            existing = await session.get(Equipment, "EQ-KC0103")
-            if existing is not None:
-                return
+        existing = await self.session.get(Equipment, "EQ-KC0103")
+        if existing is not None:
+            return
 
-            equipment = Equipment(
+        equipment = Equipment(
                 id="EQ-KC0103",
                 org_id="ORG-01",
                 code="000000029",
@@ -122,7 +161,7 @@ class FieldRepository:
                 },
             )
 
-            parameter = EquipmentParameterDef(
+        parameter = EquipmentParameterDef(
                 id="PARAM-COMPRESSOR-PRESSURE-OUT",
                 equipment_type_id="compressor",
                 code="PRESSURE_OUT",
@@ -135,7 +174,7 @@ class FieldRepository:
                 critical_max=1.7,
             )
 
-            employee = Employee(
+        employee = Employee(
                 id="dev-worker",
                 person_id="EMP-145",
                 full_name="Development Worker",
@@ -143,8 +182,8 @@ class FieldRepository:
                 department_id="DEPT-UGP",
             )
 
-            now = datetime.now(timezone.utc)
-            shift = Shift(
+        now = datetime.now(timezone.utc)
+        shift = Shift(
                 id="SHIFT-A-2026-04-17",
                 org_id="ORG-01",
                 shift_code="A",
@@ -153,7 +192,7 @@ class FieldRepository:
                 calendar_id="CAL-UGP",
             )
 
-            route = RouteTemplate(
+        route = RouteTemplate(
                 id="ROUTE-KC0103",
                 org_id="ORG-01",
                 department_id="DEPT-UGP",
@@ -174,7 +213,7 @@ class FieldRepository:
                 },
             )
 
-            route_step = RouteStep(
+        route_step = RouteStep(
                 id="ROUTE-KC0103-STEP-1",
                 route_template_id="ROUTE-KC0103",
                 seq_no=1,
@@ -184,7 +223,7 @@ class FieldRepository:
                 confirm_by="nfc",
             )
 
-            checklist_template = ChecklistTemplate(
+        checklist_template = ChecklistTemplate(
                 id="TPL-EVERYDAY-SAFETY-02",
                 org_id="ORG-01",
                 name="Ежесменный осмотр компрессорной установки",
@@ -197,7 +236,7 @@ class FieldRepository:
                 },
             )
 
-            checklist_items = [
+        checklist_items = [
                 ChecklistItemTemplate(
                     id="TPL-EVERYDAY-SAFETY-02-ITEM-1",
                     checklist_template_id="TPL-EVERYDAY-SAFETY-02",
@@ -217,7 +256,7 @@ class FieldRepository:
                 ),
             ]
 
-            round_instance = RoundInstance(
+        round_instance = RoundInstance(
                 id="ROUND-2026-04-17-000123",
                 org_id="ORG-01",
                 route_template_id="ROUTE-KC0103",
@@ -230,7 +269,7 @@ class FieldRepository:
                 snapshot_json={"schemaVersion": "1.0.0"},
             )
 
-            checklist_instance = ChecklistInstance(
+        checklist_instance = ChecklistInstance(
                 id="CL-2026-04-17-555",
                 round_instance_id="ROUND-2026-04-17-000123",
                 checklist_template_id="TPL-EVERYDAY-SAFETY-02",
@@ -239,18 +278,18 @@ class FieldRepository:
                 snapshot_json={"entityRef": {"entityType": "round", "entityId": "ROUND-2026-04-17-000123"}},
             )
 
-            session.add_all(
-                [
-                    equipment,
-                    parameter,
-                    employee,
-                    shift,
-                    route,
-                    route_step,
-                    checklist_template,
-                    *checklist_items,
-                    round_instance,
-                    checklist_instance,
-                ]
-            )
-            await session.commit()
+        self.session.add_all(
+            [
+                equipment,
+                parameter,
+                employee,
+                shift,
+                route,
+                route_step,
+                checklist_template,
+                *checklist_items,
+                round_instance,
+                checklist_instance,
+            ]
+        )
+        await self.session.commit()

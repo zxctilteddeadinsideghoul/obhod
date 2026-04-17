@@ -8,7 +8,7 @@ from app.db import Base, engine
 
 
 container = Container()
-container.wire(packages=["app.api.routes"])
+container.wire(modules=["app.api.dependencies"])
 
 
 @asynccontextmanager
