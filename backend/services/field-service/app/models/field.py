@@ -218,6 +218,7 @@ class ChecklistItemResult(Base, TimestampMixin):
     checklist_instance_id: Mapped[str] = mapped_column(ForeignKey("field_checklist_instance.id"), index=True)
     item_template_id: Mapped[str] = mapped_column(ForeignKey("field_checklist_item_template.id"), index=True)
     equipment_id: Mapped[str | None] = mapped_column(ForeignKey("field_equipment.id"), nullable=True)
+    route_step_id: Mapped[str | None] = mapped_column(ForeignKey("field_route_step.id"), nullable=True)
     result_code: Mapped[str | None] = mapped_column(String(64), nullable=True)
     result_value: Mapped[dict] = mapped_column(JSONB, default=dict)
     comment: Mapped[str | None] = mapped_column(Text, nullable=True)

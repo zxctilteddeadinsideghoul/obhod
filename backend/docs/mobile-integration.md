@@ -331,6 +331,8 @@ POST /api/field/checklists/{checklist_instance_id}/items/{item_template_id}/resu
 
 Назначение: сохранить ответ работника по конкретному пункту формы проверки.
 
+Важно: результат формы можно отправлять только после успешного подтверждения контрольной точки через QR/NFC. В request обязательно передаётся `route_step_id`.
+
 Headers:
 
 ```http
@@ -343,6 +345,7 @@ Request для boolean-поля:
 ```json
 {
   "equipment_id": "EQ-KC0103",
+  "route_step_id": "ROUTE-KC0103-STEP-1",
   "result_code": "ok",
   "result_value": {
     "value": true
@@ -356,6 +359,7 @@ Request для числового поля:
 ```json
 {
   "equipment_id": "EQ-KC0103",
+  "route_step_id": "ROUTE-KC0103-STEP-1",
   "result_code": "ok",
   "result_value": {
     "value": 1.5,
@@ -374,6 +378,7 @@ Response:
     "checklist_instance_id": "CL-2026-04-17-555",
     "item_template_id": "TPL-EVERYDAY-SAFETY-02-ITEM-1",
     "equipment_id": "EQ-KC0103",
+    "route_step_id": "ROUTE-KC0103-STEP-1",
     "result_code": "ok",
     "result_value": {
       "value": true
@@ -397,6 +402,14 @@ warning    есть отклонение
 critical   критическое отклонение
 ```
 
+Ошибки:
+
+```text
+409 Conflict   точка маршрута не подтверждена через QR/NFC
+409 Conflict   route_step_id не передан
+403 Forbidden  чек-лист назначен другому работнику
+```
+
 ---
 
 ### Отправить показание оборудования
@@ -406,6 +419,8 @@ POST /api/field/equipment/{equipment_id}/readings
 ```
 
 Назначение: сохранить измеренное значение оборудования и автоматически проверить его по нормам.
+
+Важно: показание можно отправлять только после успешного подтверждения контрольной точки через QR/NFC. В request обязательно передаётся `route_step_id`.
 
 Headers:
 
@@ -509,6 +524,7 @@ Response:
 
 ```text
 409 Conflict   не заполнены обязательные пункты формы
+409 Conflict   не все обязательные точки маршрута подтверждены через QR/NFC
 403 Forbidden  обход назначен другому работнику
 ```
 
@@ -573,6 +589,7 @@ POST /api/field/tasks/{round_id}/finish
 
 - Полная форма проверки не должна считаться доступной до успешного QR/NFC-подтверждения точки.
 - При сканировании нужно отправлять `confirm_by` и `scanned_value`.
+- При отправке формы и показаний нужно передавать `route_step_id`.
 - Если сервер вернул `409 Conflict`, форму открывать нельзя.
 - Если нет связи, мобильное приложение в будущем должно сохранить действие локально через Room и синхронизировать позже.
 - `completion_pct` можно использовать для отображения прогресса заполнения формы.

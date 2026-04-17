@@ -49,6 +49,8 @@ class Container(containers.DeclarativeContainer):
         SubmitEquipmentReadingUseCase,
         session=db_session,
         equipment_repository=equipment_repository,
+        rounds_repository=rounds_repository,
+        route_step_visits_repository=route_step_visits_repository,
     )
     confirm_route_step_use_case = providers.Factory(
         ConfirmRouteStepUseCase,
@@ -76,12 +78,14 @@ class Container(containers.DeclarativeContainer):
         SubmitChecklistItemResultUseCase,
         session=db_session,
         checklists_repository=checklists_repository,
+        route_step_visits_repository=route_step_visits_repository,
     )
     finish_round_use_case = providers.Factory(
         FinishRoundUseCase,
         session=db_session,
         rounds_repository=rounds_repository,
         checklists_repository=checklists_repository,
+        route_step_visits_repository=route_step_visits_repository,
     )
     list_checklist_templates_use_case = providers.Factory(
         ListChecklistTemplatesUseCase,

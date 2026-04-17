@@ -165,6 +165,7 @@ class ChecklistItemResultRead(BaseModel):
     checklist_instance_id: str
     item_template_id: str
     equipment_id: str | None = None
+    route_step_id: str | None = None
     result_code: str | None = None
     result_value: dict = Field(default_factory=dict)
     comment: str | None = None
@@ -176,6 +177,7 @@ class ChecklistItemResultRead(BaseModel):
 
 class ChecklistItemResultCreate(BaseModel):
     equipment_id: str | None = None
+    route_step_id: str | None = None
     result_code: str | None = None
     result_value: dict = Field(default_factory=dict)
     comment: str | None = None

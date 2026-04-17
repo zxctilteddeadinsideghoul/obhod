@@ -122,6 +122,7 @@ class ChecklistsRepository:
             self.session.add(existing_result)
 
         existing_result.equipment_id = payload.equipment_id
+        existing_result.route_step_id = payload.route_step_id
         existing_result.result_code = payload.result_code
         existing_result.result_value = payload.result_value
         existing_result.comment = payload.comment
@@ -150,6 +151,7 @@ class ChecklistsRepository:
                     "authorId": author_id,
                     "checklistInstanceId": checklist_instance.id,
                     "itemTemplateId": item_template_id,
+                    "routeStepId": payload.route_step_id,
                     "status": result_status,
                 },
             )
@@ -287,6 +289,7 @@ class ChecklistsRepository:
             "checklist_instance_id": result.checklist_instance_id,
             "item_template_id": result.item_template_id,
             "equipment_id": result.equipment_id,
+            "route_step_id": result.route_step_id,
             "result_code": result.result_code,
             "result_value": result.result_value,
             "comment": result.comment,
