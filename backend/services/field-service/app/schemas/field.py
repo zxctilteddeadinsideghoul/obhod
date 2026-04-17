@@ -66,6 +66,27 @@ class RouteStepRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class RouteStepConfirmCreate(BaseModel):
+    confirm_by: str = "qr"
+    scanned_value: str
+    payload_json: dict = Field(default_factory=dict)
+
+
+class RouteStepVisitRead(BaseModel):
+    id: str
+    round_instance_id: str
+    route_step_id: str
+    equipment_id: str
+    employee_id: str
+    confirmed_by: str
+    scanned_value: str
+    confirmed_at: datetime
+    status: str
+    payload_json: dict = Field(default_factory=dict)
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class RouteRead(BaseModel):
     id: str
     org_id: str
@@ -180,5 +201,13 @@ class TaskDetailRead(BaseModel):
     round: RoundRead
     route: RouteRead
     equipment: list[EquipmentRead]
+    checklist_instance: ChecklistInstanceRead | None = None
+    checklist_template: ChecklistTemplateRead | None = None
+
+
+class RouteStepConfirmRead(BaseModel):
+    status: str
+    visit: RouteStepVisitRead
+    equipment: EquipmentRead
     checklist_instance: ChecklistInstanceRead | None = None
     checklist_template: ChecklistTemplateRead | None = None

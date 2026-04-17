@@ -6,10 +6,12 @@ from app.repositories import (
     DemoDataRepository,
     EquipmentRepository,
     RoundsRepository,
+    RouteStepVisitsRepository,
     RoutesRepository,
     TasksRepository,
 )
 from app.use_cases import (
+    ConfirmRouteStepUseCase,
     FinishRoundUseCase,
     GetChecklistTemplateUseCase,
     GetEquipmentUseCase,
@@ -35,6 +37,7 @@ class Container(containers.DeclarativeContainer):
     checklists_repository = providers.Factory(ChecklistsRepository, session=db_session)
     demo_data_repository = providers.Factory(DemoDataRepository, session=db_session)
     equipment_repository = providers.Factory(EquipmentRepository, session=db_session)
+    route_step_visits_repository = providers.Factory(RouteStepVisitsRepository, session=db_session)
     rounds_repository = providers.Factory(RoundsRepository, session=db_session)
     routes_repository = providers.Factory(RoutesRepository, session=db_session)
     tasks_repository = providers.Factory(TasksRepository, session=db_session)
@@ -46,6 +49,13 @@ class Container(containers.DeclarativeContainer):
         SubmitEquipmentReadingUseCase,
         session=db_session,
         equipment_repository=equipment_repository,
+    )
+    confirm_route_step_use_case = providers.Factory(
+        ConfirmRouteStepUseCase,
+        session=db_session,
+        rounds_repository=rounds_repository,
+        route_step_visits_repository=route_step_visits_repository,
+        checklists_repository=checklists_repository,
     )
     list_routes_use_case = providers.Factory(ListRoutesUseCase, repository=routes_repository)
     get_route_use_case = providers.Factory(GetRouteUseCase, repository=routes_repository)

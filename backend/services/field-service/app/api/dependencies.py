@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.containers import Container
 from app.db import get_db_session
 from app.use_cases import (
+    ConfirmRouteStepUseCase,
     FinishRoundUseCase,
     GetChecklistTemplateUseCase,
     GetEquipmentUseCase,
@@ -57,6 +58,13 @@ def get_submit_equipment_reading_use_case(
     container: Container = Depends(get_container),
 ) -> SubmitEquipmentReadingUseCase:
     return _build_with_session(container, container.submit_equipment_reading_use_case, session)
+
+
+def get_confirm_route_step_use_case(
+    session: AsyncSession = Depends(get_db_session),
+    container: Container = Depends(get_container),
+) -> ConfirmRouteStepUseCase:
+    return _build_with_session(container, container.confirm_route_step_use_case, session)
 
 
 def get_list_routes_use_case(

@@ -94,6 +94,25 @@ class RouteStep(Base, TimestampMixin):
     equipment: Mapped[Equipment] = relationship()
 
 
+class RouteStepVisit(Base, TimestampMixin):
+    __tablename__ = "field_route_step_visit"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    round_instance_id: Mapped[str] = mapped_column(ForeignKey("field_round_instance.id"), index=True)
+    route_step_id: Mapped[str] = mapped_column(ForeignKey("field_route_step.id"), index=True)
+    equipment_id: Mapped[str] = mapped_column(ForeignKey("field_equipment.id"), index=True)
+    employee_id: Mapped[str] = mapped_column(ForeignKey("field_employee.id"), index=True)
+    confirmed_by: Mapped[str] = mapped_column(String(32))
+    scanned_value: Mapped[str] = mapped_column(String(255))
+    confirmed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    status: Mapped[str] = mapped_column(String(32), index=True, default="confirmed")
+    payload_json: Mapped[dict] = mapped_column(JSONB, default=dict)
+
+    round_instance: Mapped["RoundInstance"] = relationship()
+    route_step: Mapped[RouteStep] = relationship()
+    equipment: Mapped[Equipment] = relationship()
+
+
 class Employee(Base, TimestampMixin):
     __tablename__ = "field_employee"
 

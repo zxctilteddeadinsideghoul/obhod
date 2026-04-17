@@ -1,3 +1,4 @@
+from app.use_cases.confirm_route_step import ConfirmRouteStepUseCase
 from app.use_cases.finish_round import FinishRoundUseCase
 from app.use_cases.get_checklist_template import GetChecklistTemplateUseCase
 from app.use_cases.get_equipment import GetEquipmentUseCase
@@ -14,6 +15,7 @@ from app.use_cases.submit_checklist_item_result import SubmitChecklistItemResult
 from app.use_cases.submit_equipment_reading import SubmitEquipmentReadingUseCase
 
 __all__ = [
+    "ConfirmRouteStepUseCase",
     "FinishRoundUseCase",
     "GetChecklistTemplateUseCase",
     "GetEquipmentUseCase",

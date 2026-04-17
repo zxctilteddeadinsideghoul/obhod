@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 
 from app.api.dependencies import (
+    get_confirm_route_step_use_case,
     get_get_checklist_template_use_case,
     get_get_equipment_use_case,
     get_get_route_use_case,
@@ -24,11 +25,14 @@ from app.schemas import (
     EquipmentParameterReadingSubmitRead,
     EquipmentRead,
     RouteRead,
+    RouteStepConfirmCreate,
+    RouteStepConfirmRead,
     RoundRead,
     TaskDetailRead,
     TaskSummaryRead,
 )
 from app.use_cases import (
+    ConfirmRouteStepUseCase,
     FinishRoundUseCase,
     GetChecklistTemplateUseCase,
     GetEquipmentUseCase,
@@ -170,6 +174,25 @@ async def start_round(
         return await use_case.execute(round_id, x_user_id, x_user_role)
     except KeyError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+    except PermissionError:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Task is not assigned to current worker")
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+
+
+@router.post("/tasks/{round_id}/steps/{route_step_id}/confirm", response_model=RouteStepConfirmRead)
+async def confirm_route_step(
+    round_id: str,
+    route_step_id: str,
+    payload: RouteStepConfirmCreate,
+    x_user_id: str = Header(),
+    x_user_role: str = Header(),
+    use_case: ConfirmRouteStepUseCase = Depends(get_confirm_route_step_use_case),
+) -> RouteStepConfirmRead:
+    try:
+        return await use_case.execute(round_id, route_step_id, payload, x_user_id, x_user_role)
+    except KeyError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task or route step not found")
     except PermissionError:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Task is not assigned to current worker")
     except ValueError as exc:
