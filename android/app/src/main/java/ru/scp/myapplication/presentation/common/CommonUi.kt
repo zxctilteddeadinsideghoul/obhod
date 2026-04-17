@@ -6,11 +6,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -61,6 +64,45 @@ fun FactRow(label: String, value: String) {
             text = value,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Medium
+        )
+    }
+}
+
+@Composable
+fun ProgressFactRow(
+    progressPercent: Int,
+    label: String = "Прогресс",
+    modifier: Modifier = Modifier
+) {
+    val normalizedPercent = progressPercent.coerceIn(0, 100)
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "$normalizedPercent%",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium
+            )
+        }
+        LinearProgressIndicator(
+            progress = { normalizedPercent / 100f },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(8.dp),
+            color = MaterialTheme.colorScheme.primary,
+            trackColor = MaterialTheme.colorScheme.surfaceVariant
         )
     }
 }
@@ -129,6 +171,18 @@ fun RoundStatusPill(status: RoundStatus) {
 }
 
 @Composable
+fun RoundStatusPill(status: String) {
+    val normalized = status.lowercase()
+    val (background, foreground, text) = when (normalized) {
+        "planned" -> Triple(Color(0xFFE0E7FF), Color(0xFF22438A), "Запланирован")
+        "in_progress" -> Triple(Color(0xFFDCEBFF), Color(0xFF0F4674), "В работе")
+        "completed" -> Triple(Color(0xFFD9F2E6), Color(0xFF0B5D3B), "Завершен")
+        else -> Triple(Color(0xFFE5E7EB), Color(0xFF334155), status)
+    }
+    StatusPill(text = text, background = background, foreground = foreground)
+}
+
+@Composable
 fun ChecklistStatusPill(status: ChecklistStatus) {
     val (background, foreground, text) = when (status) {
         ChecklistStatus.DRAFT -> Triple(Color(0xFFE5E7EB), Color(0xFF334155), "Черновик")
@@ -138,4 +192,54 @@ fun ChecklistStatusPill(status: ChecklistStatus) {
         ChecklistStatus.SIGNED -> Triple(Color(0xFFE0E7FF), Color(0xFF22438A), "Подписан")
     }
     StatusPill(text = text, background = background, foreground = foreground)
+}
+
+@Composable
+fun ChecklistStatusPill(status: String) {
+    val normalized = status.lowercase()
+    val (background, foreground, text) = when (normalized) {
+        "draft" -> Triple(Color(0xFFE5E7EB), Color(0xFF334155), "Черновик")
+        "in_progress" -> Triple(Color(0xFFDCEBFF), Color(0xFF0F4674), "Выполняется")
+        "completed" -> Triple(Color(0xFFD9F2E6), Color(0xFF0B5D3B), "Завершен")
+        else -> Triple(Color(0xFFE5E7EB), Color(0xFF334155), status)
+    }
+    StatusPill(text = text, background = background, foreground = foreground)
+}
+
+@Composable
+fun ResultStatusCard(status: String, message: String, modifier: Modifier = Modifier) {
+    val normalized = status.lowercase()
+    val containerColor = when (normalized) {
+        "critical" -> Color(0xFFFDE2E1)
+        "warning" -> Color(0xFFFFE8C2)
+        "normal" -> Color(0xFFD9F2E6)
+        else -> MaterialTheme.colorScheme.surfaceVariant
+    }
+    val contentColor = when (normalized) {
+        "critical" -> Color(0xFF8F2020)
+        "warning" -> Color(0xFF7A4B00)
+        "normal" -> Color(0xFF0B5D3B)
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = containerColor)
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = status.replaceFirstChar { it.uppercase() },
+                color = contentColor,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = message,
+                color = contentColor,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+    }
 }

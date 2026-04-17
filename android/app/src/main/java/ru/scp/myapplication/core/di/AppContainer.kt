@@ -3,14 +3,19 @@ package ru.scp.myapplication.core.di
 import android.content.Context
 import androidx.room.Room
 import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import ru.scp.myapplication.BuildConfig
 import ru.scp.myapplication.data.local.ToirDatabase
 import ru.scp.myapplication.data.remote.FakeToirApiService
+import ru.scp.myapplication.data.remote.MobileBackendApiService
 import ru.scp.myapplication.data.remote.ToirApiService
 import ru.scp.myapplication.data.repository.ChecklistRepositoryImpl
+import ru.scp.myapplication.data.repository.MobileBackendRepository
+import ru.scp.myapplication.data.repository.MobileBackendRepositoryImpl
 import ru.scp.myapplication.data.repository.RoundRepositoryImpl
 import ru.scp.myapplication.data.repository.RouteRepositoryImpl
 import ru.scp.myapplication.data.repository.SyncRepositoryImpl
@@ -31,7 +36,7 @@ import ru.scp.myapplication.domain.usecase.UpdateChecklistItemUseCase
 
 class AppContainer(appContext: Context) {
 
-    private val gson = Gson()
+    private val gson: Gson = GsonBuilder().create()
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BASIC
@@ -41,15 +46,33 @@ class AppContainer(appContext: Context) {
         .addInterceptor(loggingInterceptor)
         .build()
 
+    private val backendOkHttpClient = OkHttpClient.Builder()
+        .addInterceptor { chain ->
+            val request = chain.request().newBuilder()
+                .header("Authorization", BuildConfig.WORKER_TOKEN)
+                .build()
+            chain.proceed(request)
+        }
+        .addInterceptor(loggingInterceptor)
+        .build()
+
     val retrofit: Retrofit = Retrofit.Builder()
         .baseUrl("https://placeholder.toir.local/api/")
         .client(okHttpClient)
         .addConverterFactory(GsonConverterFactory.create(gson))
         .build()
 
+    private val backendRetrofit: Retrofit = Retrofit.Builder()
+        .baseUrl(BuildConfig.API_BASE_URL)
+        .client(backendOkHttpClient)
+        .addConverterFactory(GsonConverterFactory.create(gson))
+        .build()
+
     val realApi: ToirApiService = retrofit.create(ToirApiService::class.java)
     private val fakeApi: ToirApiService = FakeToirApiService()
     private val apiService: ToirApiService = fakeApi
+    private val mobileBackendApi: MobileBackendApiService =
+        backendRetrofit.create(MobileBackendApiService::class.java)
 
     private val database = Room.databaseBuilder(
         appContext,
@@ -89,6 +112,10 @@ class AppContainer(appContext: Context) {
         apiService = apiService,
         syncScheduler = syncScheduler,
         gson = gson
+    )
+
+    val mobileBackendRepository: MobileBackendRepository = MobileBackendRepositoryImpl(
+        apiService = mobileBackendApi
     )
 
     val observeCurrentRoundUseCase = ObserveCurrentRoundUseCase(roundRepository)

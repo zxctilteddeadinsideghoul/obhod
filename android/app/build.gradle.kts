@@ -16,6 +16,11 @@ android {
         versionCode = 1
         versionName = "1.0"
 
+        buildConfigField("String", "API_BASE_URL", "\"http://10.92.160.223/\"")
+        buildConfigField("String", "WORKER_TOKEN", "\"Bearer dev-token\"")
+        buildConfigField("String", "DEVICE_ID", "\"MIG-DEMO-001\"")
+        buildConfigField("String", "PRESSURE_PARAMETER_DEF_ID", "\"PARAM-COMPRESSOR-PRESSURE-OUT\"")
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -37,6 +42,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
