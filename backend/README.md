@@ -57,6 +57,7 @@ The smoke test covers:
 - worker task flow: start, QR confirmation, checklist submission and finish;
 - equipment reading submission;
 - attachment upload to MinIO, listing and download;
+- defect management: list, detail, status update and severity override;
 - supervisor reports and analytics;
 - basic RBAC checks.
 

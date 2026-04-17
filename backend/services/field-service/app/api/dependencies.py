@@ -12,12 +12,14 @@ from app.use_cases import (
     CreateRouteUseCase,
     DownloadAttachmentUseCase,
     FinishRoundUseCase,
+    GetDefectUseCase,
     GetChecklistTemplateUseCase,
     GetEquipmentUseCase,
     GetRouteUseCase,
     GetTaskDetailUseCase,
     ListChecklistTemplatesUseCase,
     ListAttachmentsUseCase,
+    ListDefectsUseCase,
     ListEquipmentUseCase,
     ListMyRoundsUseCase,
     ListRoutesUseCase,
@@ -27,6 +29,8 @@ from app.use_cases import (
     SubmitChecklistItemResultUseCase,
     SubmitEquipmentReadingUseCase,
     UploadAttachmentUseCase,
+    UpdateDefectSeverityUseCase,
+    UpdateDefectStatusUseCase,
 )
 
 
@@ -93,6 +97,34 @@ def get_download_attachment_use_case(
     container: Container = Depends(get_container),
 ) -> DownloadAttachmentUseCase:
     return _build_with_session(container, container.download_attachment_use_case, session)
+
+
+def get_list_defects_use_case(
+    session: AsyncSession = Depends(get_db_session),
+    container: Container = Depends(get_container),
+) -> ListDefectsUseCase:
+    return _build_with_session(container, container.list_defects_use_case, session)
+
+
+def get_get_defect_use_case(
+    session: AsyncSession = Depends(get_db_session),
+    container: Container = Depends(get_container),
+) -> GetDefectUseCase:
+    return _build_with_session(container, container.get_defect_use_case, session)
+
+
+def get_update_defect_status_use_case(
+    session: AsyncSession = Depends(get_db_session),
+    container: Container = Depends(get_container),
+) -> UpdateDefectStatusUseCase:
+    return _build_with_session(container, container.update_defect_status_use_case, session)
+
+
+def get_update_defect_severity_use_case(
+    session: AsyncSession = Depends(get_db_session),
+    container: Container = Depends(get_container),
+) -> UpdateDefectSeverityUseCase:
+    return _build_with_session(container, container.update_defect_severity_use_case, session)
 
 
 def get_list_equipment_use_case(

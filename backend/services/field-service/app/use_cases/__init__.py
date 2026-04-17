@@ -5,12 +5,14 @@ from app.use_cases.create_round import CreateRoundUseCase
 from app.use_cases.create_route import CreateRouteUseCase
 from app.use_cases.download_attachment import DownloadAttachmentUseCase
 from app.use_cases.finish_round import FinishRoundUseCase
+from app.use_cases.get_defect import GetDefectUseCase
 from app.use_cases.get_checklist_template import GetChecklistTemplateUseCase
 from app.use_cases.get_equipment import GetEquipmentUseCase
 from app.use_cases.get_route import GetRouteUseCase
 from app.use_cases.get_task_detail import GetTaskDetailUseCase
 from app.use_cases.list_checklist_templates import ListChecklistTemplatesUseCase
 from app.use_cases.list_attachments import ListAttachmentsUseCase
+from app.use_cases.list_defects import ListDefectsUseCase
 from app.use_cases.list_equipment import ListEquipmentUseCase
 from app.use_cases.list_my_rounds import ListMyRoundsUseCase
 from app.use_cases.list_routes import ListRoutesUseCase
@@ -20,6 +22,8 @@ from app.use_cases.start_round import StartRoundUseCase
 from app.use_cases.submit_checklist_item_result import SubmitChecklistItemResultUseCase
 from app.use_cases.submit_equipment_reading import SubmitEquipmentReadingUseCase
 from app.use_cases.upload_attachment import UploadAttachmentUseCase
+from app.use_cases.update_defect_severity import UpdateDefectSeverityUseCase
+from app.use_cases.update_defect_status import UpdateDefectStatusUseCase
 
 __all__ = [
     "ConfirmRouteStepUseCase",
@@ -29,12 +33,14 @@ __all__ = [
     "CreateRouteUseCase",
     "DownloadAttachmentUseCase",
     "FinishRoundUseCase",
+    "GetDefectUseCase",
     "GetChecklistTemplateUseCase",
     "GetEquipmentUseCase",
     "GetRouteUseCase",
     "GetTaskDetailUseCase",
     "ListAttachmentsUseCase",
     "ListChecklistTemplatesUseCase",
+    "ListDefectsUseCase",
     "ListEquipmentUseCase",
     "ListMyRoundsUseCase",
     "ListRoutesUseCase",
@@ -44,4 +50,6 @@ __all__ = [
     "SubmitChecklistItemResultUseCase",
     "SubmitEquipmentReadingUseCase",
     "UploadAttachmentUseCase",
+    "UpdateDefectSeverityUseCase",
+    "UpdateDefectStatusUseCase",
 ]
