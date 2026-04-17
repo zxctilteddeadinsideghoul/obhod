@@ -34,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -42,6 +43,7 @@ import ru.scp.myapplication.domain.model.ChecklistTemplateItem
 import ru.scp.myapplication.domain.model.RouteStepDetails
 import ru.scp.myapplication.presentation.common.ChecklistStatusPill
 import ru.scp.myapplication.presentation.common.FactRow
+import ru.scp.myapplication.presentation.common.ProgressFactRow
 import ru.scp.myapplication.presentation.common.ResultStatusCard
 import ru.scp.myapplication.presentation.common.RoundStatusPill
 import ru.scp.myapplication.presentation.common.SectionCard
@@ -155,23 +157,30 @@ fun ChecklistScreen(
                         SectionCard(title = "Чек-лист") {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalAlignment = Alignment.Top
                             ) {
-                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
                                     Text(
                                         text = details.checklistTemplate.name ?: details.checklistTemplate.id,
                                         style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.SemiBold
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis
                                     )
                                     Text(
                                         text = details.checklistInstance.id,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
                                     )
                                 }
                                 ChecklistStatusPill(uiState.checklistStatus)
                             }
-                            FactRow(label = "Прогресс", value = "${uiState.checklistCompletionPct}%")
+                            ProgressFactRow(progressPercent = uiState.checklistCompletionPct)
                             if (uiState.confirmedStep == null) {
                                 Text(
                                     text = "Форма откроется после успешного подтверждения QR/NFC точки.",

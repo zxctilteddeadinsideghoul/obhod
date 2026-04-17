@@ -30,6 +30,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import ru.scp.myapplication.ToirApplication
 import ru.scp.myapplication.domain.model.AssignedTask
 import ru.scp.myapplication.presentation.common.FactRow
+import ru.scp.myapplication.presentation.common.ProgressFactRow
 import ru.scp.myapplication.presentation.common.RoundStatusPill
 import ru.scp.myapplication.presentation.common.SectionCard
 
@@ -159,7 +160,7 @@ private fun TaskCard(task: AssignedTask, onOpenTask: (String) -> Unit) {
         }
         FactRow(label = "Плановое начало", value = task.plannedStart)
         FactRow(label = "Плановое окончание", value = task.plannedEnd ?: "Не указано")
-        FactRow(label = "Прогресс", value = "${task.completionPct}%")
+        ProgressFactRow(progressPercent = task.completionPct)
         Button(
             onClick = { onOpenTask(task.id) },
             modifier = Modifier.fillMaxWidth()
