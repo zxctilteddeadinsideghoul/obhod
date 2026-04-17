@@ -1,17 +1,45 @@
 import { isMockApiEnabled, mockApi } from "./mockData";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
+const DEV_BACKEND_TOKEN = import.meta.env.VITE_AUTH_TOKEN || "dev-admin-token";
+
+function resolveToken(token) {
+  if (isMockApiEnabled()) {
+    return token;
+  }
+
+  if (!token || token === "mock-manager-token") {
+    return DEV_BACKEND_TOKEN;
+  }
+
+  return token;
+}
 
 async function request(path, options = {}) {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
-      ...options.headers,
-    },
-    method: options.method || "GET",
-    body: options.body ? JSON.stringify(options.body) : undefined,
-  });
+  const token = resolveToken(options.token);
+  const headers = {
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...options.headers,
+  };
+
+  if (options.body) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  let response;
+
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      headers,
+      method: options.method || "GET",
+      body: options.body ? JSON.stringify(options.body) : undefined,
+    });
+  } catch {
+    const error = new Error("Сервер недоступен. Проверь адрес API и запущен ли backend.");
+    error.status = 0;
+    error.path = path;
+    throw error;
+  }
 
   if (!response.ok) {
     let detail = `HTTP ${response.status}`;
@@ -21,7 +49,15 @@ async function request(path, options = {}) {
     } catch {
       // ignore invalid json
     }
-    throw new Error(detail);
+
+    if (response.status === 502 && path.startsWith("/api/field")) {
+      detail = "Сервис обходов сейчас недоступен: backend gateway вернул 502 Bad Gateway.";
+    }
+
+    const error = new Error(detail);
+    error.status = response.status;
+    error.path = path;
+    throw error;
   }
 
   return response.status === 204 ? null : response.json();

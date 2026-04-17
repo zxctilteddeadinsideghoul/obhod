@@ -26,12 +26,14 @@ cp .env.example .env
 - `VITE_DATA_SOURCE=mock` — использовать локальные моковые данные;
 - `VITE_DATA_SOURCE=backend` — использовать реальный backend.
 
-Если выбран режим `backend`, укажи адрес API:
+Если выбран режим `backend`, укажи адрес Traefik HTTP entrypoint:
 
 ```env
-VITE_API_BASE_URL=http://localhost
-VITE_PROXY_TARGET=http://localhost
+VITE_API_BASE_URL=http://144.31.181.154
+VITE_PROXY_TARGET=http://144.31.181.154
 ```
+
+`Traefik` dashboard обычно доступен на `:8080`, но API приложения должен идти через HTTP entrypoint, в вашем текущем окружении это `http://144.31.181.154`.
 
 ## Реализованная логика
 
