@@ -1,0 +1,26 @@
+# Python caches and bytecode
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Test, type-check, and lint caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Local virtual environments
+.venv/
+venv/
+env/
+
+# Local environment overrides
+.env
+
+# Editor and OS files
+.idea/
+.vscode/
+.DS_Store

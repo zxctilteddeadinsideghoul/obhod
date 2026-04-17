@@ -4,18 +4,22 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import retrofit2.HttpException
+import ru.scp.myapplication.BuildConfig
 import ru.scp.myapplication.core.di.AppContainer
-import ru.scp.myapplication.domain.model.RoundSheet
+import ru.scp.myapplication.domain.model.AssignedTask
+import ru.scp.myapplication.domain.model.WorkerProfile
+import java.io.IOException
 
 data class CurrentRoundUiState(
     val isLoading: Boolean = true,
-    val round: RoundSheet? = null,
-    val pendingSyncCount: Int = 0,
+    val worker: WorkerProfile? = null,
+    val tasks: List<AssignedTask> = emptyList(),
+    val baseUrl: String = BuildConfig.API_BASE_URL,
     val errorMessage: String? = null
 )
 
@@ -23,31 +27,10 @@ class CurrentRoundViewModel(
     container: AppContainer
 ) : ViewModel() {
 
-    private val observeCurrentRoundUseCase = container.observeCurrentRoundUseCase
-    private val observePendingSyncCountUseCase = container.observePendingSyncCountUseCase
-    private val refreshCurrentRoundUseCase = container.refreshCurrentRoundUseCase
-    private val syncPendingUseCase = container.syncPendingUseCase
+    private val repository = container.mobileBackendRepository
 
-    private val isRefreshing = MutableStateFlow(true)
-    private val errorMessage = MutableStateFlow<String?>(null)
-
-    val uiState: StateFlow<CurrentRoundUiState> = combine(
-        observeCurrentRoundUseCase(),
-        observePendingSyncCountUseCase(),
-        isRefreshing,
-        errorMessage
-    ) { round, pendingCount, loading, error ->
-        CurrentRoundUiState(
-            isLoading = loading && round == null,
-            round = round,
-            pendingSyncCount = pendingCount,
-            errorMessage = error
-        )
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = CurrentRoundUiState()
-    )
+    private val _uiState = MutableStateFlow(CurrentRoundUiState())
+    val uiState: StateFlow<CurrentRoundUiState> = _uiState.asStateFlow()
 
     init {
         refresh()
@@ -55,18 +38,26 @@ class CurrentRoundViewModel(
 
     fun refresh() {
         viewModelScope.launch {
-            isRefreshing.value = true
-            errorMessage.value = null
-            runCatching { refreshCurrentRoundUseCase() }
-                .onFailure { errorMessage.value = it.message ?: "Не удалось обновить обходной лист" }
-            isRefreshing.value = false
-        }
-    }
-
-    fun syncNow() {
-        viewModelScope.launch {
-            runCatching { syncPendingUseCase() }
-                .onFailure { errorMessage.value = it.message ?: "Не удалось отправить очередь" }
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            runCatching {
+                val worker = repository.getCurrentUser()
+                val tasks = repository.getAssignedTasks()
+                worker to tasks
+            }.onSuccess { (worker, tasks) ->
+                _uiState.value = CurrentRoundUiState(
+                    isLoading = false,
+                    worker = worker,
+                    tasks = tasks.sortedBy { it.plannedStart },
+                    baseUrl = BuildConfig.API_BASE_URL
+                )
+            }.onFailure { error ->
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = error.toUserMessage("Не удалось загрузить задания")
+                    )
+                }
+            }
         }
     }
 }
@@ -78,4 +69,15 @@ class CurrentRoundViewModelFactory(
         @Suppress("UNCHECKED_CAST")
         return CurrentRoundViewModel(container) as T
     }
+}
+
+private fun Throwable.toUserMessage(fallback: String): String = when (this) {
+    is HttpException -> when (code()) {
+        401 -> "Backend отклонил токен dev-token"
+        403 -> "Backend запретил доступ к данным работника"
+        404 -> "Запрошенные данные не найдены на backend"
+        else -> "$fallback: HTTP ${code()}"
+    }
+    is IOException -> "$fallback: нет соединения с сервером ${BuildConfig.API_BASE_URL}"
+    else -> message ?: fallback
 }
