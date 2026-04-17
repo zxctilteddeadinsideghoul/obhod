@@ -5,32 +5,22 @@ import { useAsyncResource } from "../lib/hooks";
 import { sentenceFromStatus, statusTone } from "../lib/format";
 
 async function loadEmployeesProjection(token) {
-  const tasks = await api.listTasks(token);
-  const detailList = await Promise.all(tasks.map((task) => api.getTaskDetail(token, task.id)));
-  const index = new Map();
+  const [employees, rounds] = await Promise.all([
+    api.getEmployeeAnalytics(token, { limit: 20 }),
+    api.listRoundReports(token, { limit: 200 }),
+  ]);
 
-  detailList.forEach((detail) => {
-    const employeeId = detail.round.employee_id;
-    const current = index.get(employeeId) || {
-      id: employeeId,
-      rounds: 0,
-      completed: 0,
-      active: 0,
-      routes: new Set(),
-      lastRoundStatus: detail.round.status,
-    };
+  const latestStatuses = rounds.reduce((index, round) => {
+    if (!index.has(round.employee_id)) {
+      index.set(round.employee_id, round.status);
+    }
+    return index;
+  }, new Map());
 
-    current.rounds += 1;
-    current.completed += detail.round.status === "completed" ? 1 : 0;
-    current.active += detail.round.status === "in_progress" ? 1 : 0;
-    current.routes.add(detail.route.name);
-    current.lastRoundStatus = detail.round.status;
-    index.set(employeeId, current);
-  });
-
-  return Array.from(index.values()).map((employee) => ({
+  return employees.map((employee) => ({
     ...employee,
-    routes: Array.from(employee.routes),
+    active: employee.rounds_total - employee.rounds_completed,
+    lastRoundStatus: latestStatuses.get(employee.employee_id) || "planned",
   }));
 }
 
@@ -44,7 +34,7 @@ export function EmployeesPage() {
       <PageHeader
         eyebrow="Исполнители"
         title="Сотрудники"
-        subtitle="Сводная картина по исполнителям, маршрутам и статусам выполнения обходов."
+        subtitle="Агрегированная статистика по сотрудникам из report-service."
       />
 
       <div className="metrics-grid">
@@ -64,13 +54,14 @@ export function EmployeesPage() {
         ) : null}
         <div className="table-like">
           {employees.map((employee) => (
-            <div key={employee.id} className="table-row wide">
+            <div key={employee.employee_id} className="table-row wide">
               <div>
-                <strong>{employee.id}</strong>
-                <span>{employee.routes.join(", ") || "Маршруты не найдены"}</span>
+                <strong>{employee.employee_name}</strong>
+                <span>{employee.employee_id}</span>
               </div>
-              <span>Обходов: {employee.rounds}</span>
-              <span>Завершено: {employee.completed}</span>
+              <span>Обходов: {employee.rounds_total}</span>
+              <span>Завершено: {employee.rounds_completed}</span>
+              <span>Точек подтверждено: {employee.confirmed_steps_count}</span>
               <StatusBadge
                 status={sentenceFromStatus(employee.lastRoundStatus)}
                 tone={statusTone(employee.lastRoundStatus)}

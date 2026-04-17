@@ -499,6 +499,51 @@ function buildRoundDetail(db, roundId) {
   };
 }
 
+function buildRoundReportListItem(db, round) {
+  const route = getRouteIndex(db).get(round.route_id);
+  const checklistTemplate = getChecklistTemplateIndex(db).get(round.checklist_template_id);
+  const mandatoryStepsTotal = (route?.steps || []).filter((step) => step.mandatory_flag).length;
+  const confirmedStepsCount =
+    round.status === "completed"
+      ? mandatoryStepsTotal
+      : round.status === "in_progress"
+        ? Math.max(1, Math.round(mandatoryStepsTotal / 2))
+        : 0;
+  const requiredItemsTotal = (checklistTemplate?.items || []).filter((item) => item.required_flag).length;
+  const completedItemsCount = Math.round((requiredItemsTotal * Number(round.completion_pct || 0)) / 100);
+  const warningCount = (round.readings || []).filter((reading) => reading.within_limits === false).length;
+  const criticalCount = (round.defects || []).filter((defect) => defect.severity === "critical").length;
+
+  return {
+    id: round.id,
+    status: round.status,
+    route_id: round.route_id,
+    route_name: route?.name || round.route_id,
+    employee_id: round.employee_id,
+    employee_name: round.employee_name,
+    planned_start: round.planned_start,
+    planned_end: round.planned_end || null,
+    actual_start: round.checklist_instance?.started_at || null,
+    actual_end: round.checklist_instance?.finished_at || null,
+    mandatory_steps_total: mandatoryStepsTotal,
+    confirmed_steps_count: confirmedStepsCount,
+    required_items_total: requiredItemsTotal,
+    completed_items_count: completedItemsCount,
+    warning_count: warningCount,
+    critical_count: criticalCount,
+    defects_count: (round.defects || []).length,
+    completion_pct: round.completion_pct || 0,
+  };
+}
+
+function sortByPlannedStartDesc(items) {
+  return [...items].sort((left, right) => {
+    const leftTime = new Date(left.planned_start || 0).getTime();
+    const rightTime = new Date(right.planned_start || 0).getTime();
+    return rightTime - leftTime;
+  });
+}
+
 function delay(value) {
   return new Promise((resolve) => {
     window.setTimeout(() => resolve(clone(value)), 180);
@@ -578,6 +623,137 @@ export const mockApi = {
       throw new Error("Маршрут не найден.");
     }
     return delay(route);
+  },
+
+  getReportsSummary() {
+    const db = ensureDb();
+    const rounds = db.rounds.map((round) => buildRoundReportListItem(db, round));
+
+    return delay({
+      rounds_total: rounds.length,
+      rounds_planned: rounds.filter((round) => round.status === "planned").length,
+      rounds_in_progress: rounds.filter((round) => round.status === "in_progress").length,
+      rounds_completed: rounds.filter((round) => round.status === "completed").length,
+      defects_open: db.rounds.reduce(
+        (total, round) => total + (round.defects || []).filter((defect) => defect.status !== "closed").length,
+        0,
+      ),
+      warning_count: rounds.reduce((total, round) => total + round.warning_count, 0),
+      critical_count: rounds.reduce((total, round) => total + round.critical_count, 0),
+      avg_completion_pct:
+        rounds.length > 0 ? rounds.reduce((total, round) => total + round.completion_pct, 0) / rounds.length : 0,
+    });
+  },
+
+  listRoundReports(_, params = {}) {
+    const db = ensureDb();
+    const limit = Number(params.limit || 50);
+    const offset = Number(params.offset || 0);
+    const filtered = sortByPlannedStartDesc(
+      db.rounds
+        .filter((round) => (params.status ? round.status === params.status : true))
+        .filter((round) => (params.employee_id ? round.employee_id === params.employee_id : true))
+        .map((round) => buildRoundReportListItem(db, round)),
+    );
+
+    return delay(filtered.slice(offset, offset + limit));
+  },
+
+  getEquipmentAnalytics(_, params = {}) {
+    const db = ensureDb();
+    const equipmentIndex = getEquipmentIndex(db);
+    const items = Array.from(equipmentIndex.values()).map((equipment) => {
+      let defectsCount = 0;
+      let warningCount = 0;
+      let criticalCount = 0;
+      let lastReadingAt = null;
+
+      db.rounds.forEach((round) => {
+        (round.defects || [])
+          .filter((defect) => defect.equipment_id === equipment.id)
+          .forEach((defect) => {
+            defectsCount += 1;
+            criticalCount += defect.severity === "critical" ? 1 : 0;
+          });
+
+        (round.readings || [])
+          .filter((reading) => reading.equipment_id === equipment.id)
+          .forEach((reading) => {
+            warningCount += reading.within_limits === false ? 1 : 0;
+            lastReadingAt = round.checklist_instance?.finished_at || round.checklist_instance?.started_at || lastReadingAt;
+          });
+      });
+
+      return {
+        equipment_id: equipment.id,
+        equipment_name: equipment.name,
+        location: equipment.location,
+        defects_count: defectsCount,
+        warning_count: warningCount,
+        critical_count: criticalCount,
+        last_reading_at: lastReadingAt,
+      };
+    });
+
+    const limit = Number(params.limit || 20);
+    const sorted = [...items].sort((left, right) => {
+      const leftScore = left.critical_count * 100 + left.defects_count * 10 + left.warning_count;
+      const rightScore = right.critical_count * 100 + right.defects_count * 10 + right.warning_count;
+      return rightScore - leftScore;
+    });
+
+    return delay(sorted.slice(0, limit));
+  },
+
+  getEmployeeAnalytics(_, params = {}) {
+    const db = ensureDb();
+    const items = Array.from(
+      db.rounds.reduce((index, round) => {
+        const current = index.get(round.employee_id) || {
+          employee_id: round.employee_id,
+          employee_name: round.employee_name,
+          rounds_total: 0,
+          rounds_completed: 0,
+          confirmed_steps_count: 0,
+          durationSamples: [],
+          warning_count: 0,
+          critical_count: 0,
+        };
+
+        const reportItem = buildRoundReportListItem(db, round);
+        current.rounds_total += 1;
+        current.rounds_completed += round.status === "completed" ? 1 : 0;
+        current.confirmed_steps_count += reportItem.confirmed_steps_count;
+        current.warning_count += reportItem.warning_count;
+        current.critical_count += reportItem.critical_count;
+
+        if (reportItem.actual_start && reportItem.actual_end) {
+          const durationMs = new Date(reportItem.actual_end).getTime() - new Date(reportItem.actual_start).getTime();
+          if (durationMs > 0) {
+            current.durationSamples.push(durationMs / 60000);
+          }
+        }
+
+        index.set(round.employee_id, current);
+        return index;
+      }, new Map()).values(),
+    ).map((employee) => ({
+      employee_id: employee.employee_id,
+      employee_name: employee.employee_name,
+      rounds_total: employee.rounds_total,
+      rounds_completed: employee.rounds_completed,
+      confirmed_steps_count: employee.confirmed_steps_count,
+      avg_duration_min:
+        employee.durationSamples.length > 0
+          ? employee.durationSamples.reduce((total, value) => total + value, 0) / employee.durationSamples.length
+          : null,
+      warning_count: employee.warning_count,
+      critical_count: employee.critical_count,
+    }));
+
+    const limit = Number(params.limit || 20);
+    const sorted = [...items].sort((left, right) => right.rounds_completed - left.rounds_completed);
+    return delay(sorted.slice(0, limit));
   },
 
   reset() {

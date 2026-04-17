@@ -63,6 +63,20 @@ async function request(path, options = {}) {
   return response.status === 204 ? null : response.json();
 }
 
+function withQuery(path, params = {}) {
+  const search = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === "") {
+      return;
+    }
+    search.set(key, String(value));
+  });
+
+  const query = search.toString();
+  return query ? `${path}?${query}` : path;
+}
+
 function notImplemented(message) {
   throw new Error(message);
 }
@@ -118,6 +132,30 @@ export const api = {
       return mockApi.getRoute(token, routeId);
     }
     return request(`/api/field/routes/${routeId}`, { token });
+  },
+  getReportsSummary(token) {
+    if (isMockApiEnabled()) {
+      return mockApi.getReportsSummary(token);
+    }
+    return request("/api/reports/analytics/summary", { token });
+  },
+  listRoundReports(token, params) {
+    if (isMockApiEnabled()) {
+      return mockApi.listRoundReports(token, params);
+    }
+    return request(withQuery("/api/reports/rounds", params), { token });
+  },
+  getEquipmentAnalytics(token, params) {
+    if (isMockApiEnabled()) {
+      return mockApi.getEquipmentAnalytics(token, params);
+    }
+    return request(withQuery("/api/reports/analytics/equipment", params), { token });
+  },
+  getEmployeeAnalytics(token, params) {
+    if (isMockApiEnabled()) {
+      return mockApi.getEmployeeAnalytics(token, params);
+    }
+    return request(withQuery("/api/reports/analytics/employees", params), { token });
   },
   updateEquipment() {
     return notImplemented("Редактирование оборудования пока недоступно.");

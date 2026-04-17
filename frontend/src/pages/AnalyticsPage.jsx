@@ -1,28 +1,20 @@
 import { useAuth } from "../auth/AuthContext";
 import { Card, EmptyState, ErrorState, LoadingState, MetricCard, PageHeader } from "../components/Ui";
 import { api } from "../lib/api";
+import { formatDateTime, formatPercent } from "../lib/format";
 import { useAsyncResource } from "../lib/hooks";
 
 async function loadAnalytics(token) {
-  const tasks = await api.listTasks(token);
-  const details = await Promise.all(tasks.map((task) => api.getTaskDetail(token, task.id)));
-
-  const routeCounts = new Map();
-  const equipmentCounts = new Map();
-
-  details.forEach((detail) => {
-    routeCounts.set(detail.route.name, (routeCounts.get(detail.route.name) || 0) + 1);
-    detail.equipment.forEach((equipment) => {
-      equipmentCounts.set(equipment.name, (equipmentCounts.get(equipment.name) || 0) + 1);
-    });
-  });
+  const [summary, equipment, employees] = await Promise.all([
+    api.getReportsSummary(token),
+    api.getEquipmentAnalytics(token, { limit: 5 }),
+    api.getEmployeeAnalytics(token, { limit: 5 }),
+  ]);
 
   return {
-    totalRounds: details.length,
-    totalEquipmentTouches: Array.from(equipmentCounts.values()).reduce((sum, value) => sum + value, 0),
-    topRoutes: Array.from(routeCounts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 5),
-    topEquipment: Array.from(equipmentCounts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 5),
-    completedRounds: details.filter((detail) => detail.round.status === "completed").length,
+    summary,
+    equipment,
+    employees,
   };
 }
 
@@ -36,7 +28,7 @@ export function AnalyticsPage() {
       <PageHeader
         eyebrow="Управленческие метрики"
         title="Аналитика"
-        subtitle="Сводные метрики по обходам, маршрутам и оборудованию."
+        subtitle="Сводные показатели из report-service по обходам, оборудованию и исполнителям."
       />
 
       {analyticsState.loading ? <LoadingState /> : null}
@@ -45,39 +37,55 @@ export function AnalyticsPage() {
       {data ? (
         <>
           <div className="metrics-grid">
-            <MetricCard label="Всего обходов" value={data.totalRounds} />
-            <MetricCard label="Завершено" value={data.completedRounds} tone="success" />
-            <MetricCard label="Касаний оборудования" value={data.totalEquipmentTouches} tone="info" />
+            <MetricCard label="Всего обходов" value={data.summary.rounds_total} />
+            <MetricCard label="Завершено" value={data.summary.rounds_completed} tone="success" />
+            <MetricCard label="Открытых дефектов" value={data.summary.defects_open} tone="danger" />
+            <MetricCard
+              label="Среднее заполнение"
+              value={formatPercent(Math.round(data.summary.avg_completion_pct || 0))}
+              tone="info"
+            />
           </div>
 
           <div className="split-grid">
-            <Card title="Топ маршрутов">
-              {data.topRoutes.length ? (
+            <Card title="Риск по оборудованию">
+              {data.equipment.length ? (
                 <div className="table-like">
-                  {data.topRoutes.map(([name, count]) => (
-                    <div key={name} className="table-row">
-                      <strong>{name}</strong>
-                      <span>{count} обходов</span>
+                  {data.equipment.map((item) => (
+                    <div key={item.equipment_id} className="table-row wide">
+                      <div>
+                        <strong>{item.equipment_name}</strong>
+                        <span>{item.location || "Локация не указана"}</span>
+                      </div>
+                      <span>Дефекты: {item.defects_count}</span>
+                      <span>Предупр.: {item.warning_count}</span>
+                      <span>Критич.: {item.critical_count}</span>
+                      <span>{formatDateTime(item.last_reading_at)}</span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <EmptyState title="Нет маршрутов" description="Аналитика появится после загрузки обходов." />
+                <EmptyState title="Нет данных по оборудованию" description="Аналитика появится после первых измерений." />
               )}
             </Card>
 
-            <Card title="Топ оборудования">
-              {data.topEquipment.length ? (
+            <Card title="Топ исполнителей">
+              {data.employees.length ? (
                 <div className="table-like">
-                  {data.topEquipment.map(([name, count]) => (
-                    <div key={name} className="table-row">
-                      <strong>{name}</strong>
-                      <span>{count} упоминаний</span>
+                  {data.employees.map((item) => (
+                    <div key={item.employee_id} className="table-row wide">
+                      <div>
+                        <strong>{item.employee_name}</strong>
+                        <span>{item.employee_id}</span>
+                      </div>
+                      <span>Обходов: {item.rounds_total}</span>
+                      <span>Завершено: {item.rounds_completed}</span>
+                      <span>Точек: {item.confirmed_steps_count}</span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <EmptyState title="Нет оборудования" description="Аналитика появится после загрузки обходов." />
+                <EmptyState title="Нет данных по исполнителям" description="Аналитика появится после выполнения обходов." />
               )}
             </Card>
           </div>
