@@ -414,6 +414,24 @@ def main() -> int:
         f"Attachment not present in report detail: {detail.get('attachments')}",
     )
 
+    log("reports: export round report")
+    round_csv = request(
+        "GET",
+        query(f"/api/reports/rounds/{round_id}/export", {"format": "csv"}),
+        token=ADMIN_TOKEN,
+    )
+    assert_true(
+        f"round-report-{round_id}.csv" in round_csv.headers.get("Content-Disposition", ""),
+        f"Unexpected round export headers: {round_csv.headers}",
+    )
+    assert_true(b"Checklist results" in round_csv.body, "Round CSV export has no checklist section")
+    round_json = request(
+        "GET",
+        query(f"/api/reports/rounds/{round_id}/export", {"format": "json"}),
+        token=ADMIN_TOKEN,
+    ).json()
+    assert_true(round_json["round"]["id"] == round_id, f"Unexpected round JSON export: {round_json}")
+
     log("field defects: list, detail and update")
     defects = request("GET", "/api/field/defects", token=ADMIN_TOKEN).json()
     assert_true(any(item["id"] == defect_id for item in defects), f"Defect not listed: {defects}")
@@ -440,6 +458,14 @@ def main() -> int:
     employee_analytics = request("GET", "/api/reports/analytics/employees", token=ADMIN_TOKEN).json()
     assert_true(isinstance(equipment_analytics, list), "Equipment analytics is not a list")
     assert_true(isinstance(employee_analytics, list), "Employee analytics is not a list")
+
+    log("reports: export analytics")
+    analytics_csv = request(
+        "GET",
+        query("/api/reports/analytics/export", {"format": "csv", "limit": "10"}),
+        token=ADMIN_TOKEN,
+    )
+    assert_true(b"Equipment analytics" in analytics_csv.body, "Analytics CSV export has no equipment section")
 
     log("rbac: worker cannot access reports")
     request("GET", "/api/reports/analytics/summary", token=WORKER_TOKEN, expected=403)

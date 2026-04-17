@@ -1,6 +1,10 @@
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
+from typing import Literal
+
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response, status
 
 from app.api.dependencies import (
+    export_reports_analytics_use_case,
+    export_round_report_use_case,
     get_current_user_use_case,
     get_employee_analytics_use_case,
     get_equipment_analytics_use_case,
@@ -19,6 +23,8 @@ from app.schemas import (
     RoundReportListItem,
 )
 from app.use_cases import (
+    ExportReportsAnalyticsUseCase,
+    ExportRoundReportUseCase,
     GetCurrentUserUseCase,
     GetEmployeeAnalyticsUseCase,
     GetEquipmentAnalyticsUseCase,
@@ -38,6 +44,14 @@ def require_admin(x_user_role: str | None) -> None:
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only admin users can access reports",
         )
+
+
+def export_response(content: bytes, media_type: str, file_name: str) -> Response:
+    return Response(
+        content=content,
+        media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="{file_name}"'},
+    )
 
 
 @router.get("/health", response_model=HealthRead)
@@ -88,6 +102,24 @@ async def get_round_report(
     return report
 
 
+@router.get("/rounds/{round_id}/export")
+async def export_round_report(
+    round_id: str,
+    x_user_role: str | None = Header(default=None),
+    export_format: Literal["csv", "json"] = Query(default="csv", alias="format"),
+    use_case: ExportRoundReportUseCase = Depends(export_round_report_use_case),
+) -> Response:
+    require_admin(x_user_role)
+    export_file = await use_case.execute(round_id=round_id, export_format=export_format)
+    if export_file is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Round report not found")
+    return export_response(
+        content=export_file.content,
+        media_type=export_file.media_type,
+        file_name=export_file.file_name,
+    )
+
+
 @router.get("/analytics/summary", response_model=ReportsSummary)
 async def get_reports_summary(
     x_user_role: str | None = Header(default=None),
@@ -115,3 +147,19 @@ async def get_employee_analytics(
 ) -> list[EmployeeAnalyticsItem]:
     require_admin(x_user_role)
     return await use_case.execute(limit=limit)
+
+
+@router.get("/analytics/export")
+async def export_reports_analytics(
+    x_user_role: str | None = Header(default=None),
+    export_format: Literal["csv", "json"] = Query(default="csv", alias="format"),
+    limit: int = Query(default=20, ge=1, le=100),
+    use_case: ExportReportsAnalyticsUseCase = Depends(export_reports_analytics_use_case),
+) -> Response:
+    require_admin(x_user_role)
+    export_file = await use_case.execute(export_format=export_format, limit=limit)
+    return export_response(
+        content=export_file.content,
+        media_type=export_file.media_type,
+        file_name=export_file.file_name,
+    )
