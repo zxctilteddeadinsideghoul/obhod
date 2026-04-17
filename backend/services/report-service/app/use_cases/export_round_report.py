@@ -1,4 +1,5 @@
 from app.repositories import ReportsRepository
+from app.reports import RoundReportDocument
 from app.services.report_export import ExportFile, ReportExportService
 
 
@@ -15,4 +16,4 @@ class ExportRoundReportUseCase:
         report = await self.reports_repository.get_round_report(round_id)
         if report is None:
             return None
-        return self.export_service.export_round_report(report, export_format)
+        return self.export_service.export(RoundReportDocument(report), export_format)

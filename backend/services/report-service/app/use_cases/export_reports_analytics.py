@@ -1,4 +1,7 @@
+from datetime import datetime
+
 from app.repositories import ReportsRepository
+from app.reports import AnalyticsReportDocument
 from app.services.report_export import ExportFile, ReportExportService
 
 
@@ -15,4 +18,10 @@ class ExportReportsAnalyticsUseCase:
         summary = await self.reports_repository.get_summary()
         equipment = await self.reports_repository.get_equipment_analytics(limit=limit)
         employees = await self.reports_repository.get_employee_analytics(limit=limit)
-        return self.export_service.export_analytics(summary, equipment, employees, export_format)
+        document = AnalyticsReportDocument(
+            summary=summary,
+            equipment=equipment,
+            employees=employees,
+            generated_at=datetime.utcnow().replace(microsecond=0),
+        )
+        return self.export_service.export(document, export_format)
