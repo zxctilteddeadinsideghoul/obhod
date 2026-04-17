@@ -2,6 +2,7 @@ from dependency_injector import containers, providers
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.repositories import (
+    AdminRepository,
     ChecklistsRepository,
     DemoDataRepository,
     EquipmentRepository,
@@ -12,6 +13,10 @@ from app.repositories import (
 )
 from app.use_cases import (
     ConfirmRouteStepUseCase,
+    CreateChecklistTemplateUseCase,
+    CreateEquipmentUseCase,
+    CreateRoundUseCase,
+    CreateRouteUseCase,
     FinishRoundUseCase,
     GetChecklistTemplateUseCase,
     GetEquipmentUseCase,
@@ -34,6 +39,7 @@ class Container(containers.DeclarativeContainer):
 
     db_session = providers.Dependency(instance_of=AsyncSession)
 
+    admin_repository = providers.Factory(AdminRepository, session=db_session)
     checklists_repository = providers.Factory(ChecklistsRepository, session=db_session)
     demo_data_repository = providers.Factory(DemoDataRepository, session=db_session)
     equipment_repository = providers.Factory(EquipmentRepository, session=db_session)
@@ -42,6 +48,26 @@ class Container(containers.DeclarativeContainer):
     routes_repository = providers.Factory(RoutesRepository, session=db_session)
     tasks_repository = providers.Factory(TasksRepository, session=db_session)
 
+    create_equipment_use_case = providers.Factory(
+        CreateEquipmentUseCase,
+        session=db_session,
+        repository=admin_repository,
+    )
+    create_checklist_template_use_case = providers.Factory(
+        CreateChecklistTemplateUseCase,
+        session=db_session,
+        repository=admin_repository,
+    )
+    create_route_use_case = providers.Factory(
+        CreateRouteUseCase,
+        session=db_session,
+        repository=admin_repository,
+    )
+    create_round_use_case = providers.Factory(
+        CreateRoundUseCase,
+        session=db_session,
+        repository=admin_repository,
+    )
     seed_demo_data_use_case = providers.Factory(SeedDemoDataUseCase, repository=demo_data_repository)
     list_equipment_use_case = providers.Factory(ListEquipmentUseCase, repository=equipment_repository)
     get_equipment_use_case = providers.Factory(GetEquipmentUseCase, repository=equipment_repository)

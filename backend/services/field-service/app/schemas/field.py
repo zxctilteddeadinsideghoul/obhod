@@ -22,6 +22,24 @@ class EquipmentRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class EquipmentCreate(BaseModel):
+    id: str
+    org_id: str = "ORG-01"
+    code: str | None = None
+    name: str
+    tech_no: str | None = None
+    passport_no: str | None = None
+    serial_no: str | None = None
+    type_id: str
+    location_id: str | None = None
+    location: str | None = None
+    state_id: str = "in_operation"
+    qr_tag: str | None = None
+    nfc_tag: str | None = None
+    passport_json: dict = Field(default_factory=dict)
+    snapshot_json: dict = Field(default_factory=dict)
+
+
 class EquipmentParameterReadingCreate(BaseModel):
     parameter_def_id: str
     reading_ts: datetime | None = None
@@ -105,6 +123,32 @@ class RouteRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class RouteStepCreate(BaseModel):
+    id: str | None = None
+    seq_no: int
+    equipment_id: str
+    checkpoint_id: str | None = None
+    mandatory_flag: bool = True
+    confirm_by: str = "qr"
+    payload_json: dict = Field(default_factory=dict)
+
+
+class RouteCreate(BaseModel):
+    id: str
+    org_id: str = "ORG-01"
+    department_id: str | None = None
+    name: str
+    route_type: str = "inspection"
+    location: str | None = None
+    duration_min: int = 60
+    planning_rule: str = "manual"
+    qualification_id: str | None = None
+    version: str = "1"
+    is_active: bool = True
+    steps: list[RouteStepCreate] = Field(default_factory=list)
+    snapshot_json: dict = Field(default_factory=dict)
+
+
 class RoundRead(BaseModel):
     id: str
     org_id: str
@@ -120,6 +164,20 @@ class RoundRead(BaseModel):
     snapshot_json: dict = Field(default_factory=dict)
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class RoundCreate(BaseModel):
+    id: str | None = None
+    org_id: str = "ORG-01"
+    route_template_id: str
+    checklist_template_id: str
+    employee_id: str
+    planned_start: datetime
+    planned_end: datetime | None = None
+    shift_id: str | None = None
+    source_doc_id: str | None = None
+    qualification_id: str | None = None
+    snapshot_json: dict = Field(default_factory=dict)
 
 
 class ChecklistItemTemplateRead(BaseModel):
@@ -145,6 +203,29 @@ class ChecklistTemplateRead(BaseModel):
     snapshot_json: dict = Field(default_factory=dict)
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class ChecklistItemTemplateCreate(BaseModel):
+    id: str | None = None
+    seq_no: int
+    question: str
+    answer_type: str
+    required_flag: bool = True
+    norm_ref: str | None = None
+    payload_json: dict = Field(default_factory=dict)
+
+
+class ChecklistTemplateCreate(BaseModel):
+    id: str
+    org_id: str = "ORG-01"
+    name: str
+    scope: str = "round"
+    equipment_type_id: str | None = None
+    version: str = "1"
+    active_from: date | None = None
+    active_to: date | None = None
+    items: list[ChecklistItemTemplateCreate] = Field(default_factory=list)
+    snapshot_json: dict = Field(default_factory=dict)
 
 
 class ChecklistInstanceRead(BaseModel):

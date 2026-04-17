@@ -2,6 +2,10 @@ from fastapi import APIRouter, Depends, Header, HTTPException, status
 
 from app.api.dependencies import (
     get_confirm_route_step_use_case,
+    get_create_checklist_template_use_case,
+    get_create_equipment_use_case,
+    get_create_round_use_case,
+    get_create_route_use_case,
     get_get_checklist_template_use_case,
     get_get_equipment_use_case,
     get_get_route_use_case,
@@ -18,12 +22,16 @@ from app.api.dependencies import (
     get_submit_equipment_reading_use_case,
 )
 from app.schemas import (
+    ChecklistTemplateCreate,
     ChecklistItemResultCreate,
     ChecklistItemResultSubmitRead,
     ChecklistTemplateRead,
+    EquipmentCreate,
     EquipmentParameterReadingCreate,
     EquipmentParameterReadingSubmitRead,
     EquipmentRead,
+    RoundCreate,
+    RouteCreate,
     RouteRead,
     RouteStepConfirmCreate,
     RouteStepConfirmRead,
@@ -33,6 +41,10 @@ from app.schemas import (
 )
 from app.use_cases import (
     ConfirmRouteStepUseCase,
+    CreateChecklistTemplateUseCase,
+    CreateEquipmentUseCase,
+    CreateRoundUseCase,
+    CreateRouteUseCase,
     FinishRoundUseCase,
     GetChecklistTemplateUseCase,
     GetEquipmentUseCase,
@@ -80,6 +92,70 @@ async def seed_demo(
     if x_user_role != "ADMIN":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin role required")
     return await use_case.execute()
+
+
+@router.post("/admin/equipment", response_model=EquipmentRead, status_code=status.HTTP_201_CREATED)
+async def create_equipment(
+    payload: EquipmentCreate,
+    x_user_id: str = Header(),
+    x_user_role: str = Header(),
+    use_case: CreateEquipmentUseCase = Depends(get_create_equipment_use_case),
+) -> EquipmentRead:
+    try:
+        return await use_case.execute(payload, x_user_id, x_user_role)
+    except PermissionError:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin role required")
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+
+
+@router.post("/admin/checklists/templates", response_model=ChecklistTemplateRead, status_code=status.HTTP_201_CREATED)
+async def create_checklist_template(
+    payload: ChecklistTemplateCreate,
+    x_user_id: str = Header(),
+    x_user_role: str = Header(),
+    use_case: CreateChecklistTemplateUseCase = Depends(get_create_checklist_template_use_case),
+) -> ChecklistTemplateRead:
+    try:
+        return await use_case.execute(payload, x_user_id, x_user_role)
+    except PermissionError:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin role required")
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+
+
+@router.post("/admin/routes", response_model=RouteRead, status_code=status.HTTP_201_CREATED)
+async def create_route(
+    payload: RouteCreate,
+    x_user_id: str = Header(),
+    x_user_role: str = Header(),
+    use_case: CreateRouteUseCase = Depends(get_create_route_use_case),
+) -> RouteRead:
+    try:
+        return await use_case.execute(payload, x_user_id, x_user_role)
+    except PermissionError:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin role required")
+    except KeyError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Equipment not found")
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+
+
+@router.post("/admin/rounds", response_model=RoundRead, status_code=status.HTTP_201_CREATED)
+async def create_round(
+    payload: RoundCreate,
+    x_user_id: str = Header(),
+    x_user_role: str = Header(),
+    use_case: CreateRoundUseCase = Depends(get_create_round_use_case),
+) -> RoundRead:
+    try:
+        return await use_case.execute(payload, x_user_id, x_user_role)
+    except PermissionError:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin role required")
+    except KeyError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Route, checklist template or employee not found")
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
 
 
 @router.get("/equipment", response_model=list[EquipmentRead])

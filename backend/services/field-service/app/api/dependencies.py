@@ -6,6 +6,10 @@ from app.containers import Container
 from app.db import get_db_session
 from app.use_cases import (
     ConfirmRouteStepUseCase,
+    CreateChecklistTemplateUseCase,
+    CreateEquipmentUseCase,
+    CreateRoundUseCase,
+    CreateRouteUseCase,
     FinishRoundUseCase,
     GetChecklistTemplateUseCase,
     GetEquipmentUseCase,
@@ -37,6 +41,34 @@ def get_seed_demo_data_use_case(
     container: Container = Depends(get_container),
 ) -> SeedDemoDataUseCase:
     return _build_with_session(container, container.seed_demo_data_use_case, session)
+
+
+def get_create_equipment_use_case(
+    session: AsyncSession = Depends(get_db_session),
+    container: Container = Depends(get_container),
+) -> CreateEquipmentUseCase:
+    return _build_with_session(container, container.create_equipment_use_case, session)
+
+
+def get_create_checklist_template_use_case(
+    session: AsyncSession = Depends(get_db_session),
+    container: Container = Depends(get_container),
+) -> CreateChecklistTemplateUseCase:
+    return _build_with_session(container, container.create_checklist_template_use_case, session)
+
+
+def get_create_route_use_case(
+    session: AsyncSession = Depends(get_db_session),
+    container: Container = Depends(get_container),
+) -> CreateRouteUseCase:
+    return _build_with_session(container, container.create_route_use_case, session)
+
+
+def get_create_round_use_case(
+    session: AsyncSession = Depends(get_db_session),
+    container: Container = Depends(get_container),
+) -> CreateRoundUseCase:
+    return _build_with_session(container, container.create_round_use_case, session)
 
 
 def get_list_equipment_use_case(
