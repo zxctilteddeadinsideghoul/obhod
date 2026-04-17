@@ -27,6 +27,42 @@ class RouteStepVisitsRepository:
             raise KeyError(f"Route step {route_step_id} not found in round route")
         return route_step
 
+    async def ensure_confirmed(
+        self,
+        round_instance: RoundInstance,
+        route_step_id: str,
+        equipment_id: str | None = None,
+    ) -> RouteStepVisit:
+        route_step = await self.get_route_step_for_round(round_instance, route_step_id)
+        if equipment_id is not None and route_step.equipment_id != equipment_id:
+            raise ValueError("Route step equipment does not match payload equipment")
+
+        visit = await self._get_existing_visit(round_instance.id, route_step_id)
+        if visit is None or visit.status != "confirmed":
+            raise ValueError("Route step must be confirmed before submitting data")
+        return visit
+
+    async def list_missing_mandatory_step_ids(self, round_instance: RoundInstance) -> list[str]:
+        route_steps_result = await self.session.execute(
+            select(RouteStep.id).where(
+                RouteStep.route_template_id == round_instance.route_template_id,
+                RouteStep.mandatory_flag.is_(True),
+            )
+        )
+        mandatory_step_ids = list(route_steps_result.scalars().all())
+        if not mandatory_step_ids:
+            return []
+
+        visits_result = await self.session.execute(
+            select(RouteStepVisit.route_step_id).where(
+                RouteStepVisit.round_instance_id == round_instance.id,
+                RouteStepVisit.route_step_id.in_(mandatory_step_ids),
+                RouteStepVisit.status == "confirmed",
+            )
+        )
+        confirmed_step_ids = set(visits_result.scalars().all())
+        return [step_id for step_id in mandatory_step_ids if step_id not in confirmed_step_ids]
+
     async def confirm(
         self,
         round_instance: RoundInstance,

@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models import AuditLog, JournalEntry, RoundInstance
+from app.models.field import RouteStep
 
 
 class RoundsRepository:
@@ -38,6 +39,23 @@ class RoundsRepository:
         round_instance = result.scalars().one_or_none()
         if round_instance is None:
             raise KeyError(f"Round {round_id} not found")
+        return round_instance
+
+    async def get_by_route_step_and_employee(self, route_step_id: str, employee_id: str) -> RoundInstance:
+        result = await self.session.execute(
+            select(RoundInstance)
+            .join(RouteStep, RouteStep.route_template_id == RoundInstance.route_template_id)
+            .where(
+                RouteStep.id == route_step_id,
+                RoundInstance.employee_id == employee_id,
+                RoundInstance.status != "completed",
+            )
+            .options(selectinload(RoundInstance.route_template))
+            .order_by(RoundInstance.planned_start)
+        )
+        round_instance = result.scalars().first()
+        if round_instance is None:
+            raise KeyError(f"Active round for route step {route_step_id} not found")
         return round_instance
 
     async def mark_started(self, round_instance: RoundInstance, author_id: str) -> RoundInstance:

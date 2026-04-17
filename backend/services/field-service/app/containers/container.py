@@ -1,9 +1,13 @@
 from dependency_injector import containers, providers
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.domain import RuleBasedDefectSeverityCalculator, RuleBasedEquipmentStabilityCalculator
 from app.repositories import (
+    AdminRepository,
+    AttachmentsRepository,
     ChecklistsRepository,
     DemoDataRepository,
+    DefectsRepository,
     EquipmentRepository,
     RoundsRepository,
     RouteStepVisitsRepository,
@@ -12,12 +16,18 @@ from app.repositories import (
 )
 from app.use_cases import (
     ConfirmRouteStepUseCase,
+    CreateChecklistTemplateUseCase,
+    CreateEquipmentUseCase,
+    CreateRoundUseCase,
+    CreateRouteUseCase,
+    DownloadAttachmentUseCase,
     FinishRoundUseCase,
     GetChecklistTemplateUseCase,
     GetEquipmentUseCase,
     GetRouteUseCase,
     GetTaskDetailUseCase,
     ListChecklistTemplatesUseCase,
+    ListAttachmentsUseCase,
     ListEquipmentUseCase,
     ListMyRoundsUseCase,
     ListRoutesUseCase,
@@ -26,7 +36,10 @@ from app.use_cases import (
     StartRoundUseCase,
     SubmitChecklistItemResultUseCase,
     SubmitEquipmentReadingUseCase,
+    UploadAttachmentUseCase,
 )
+from app.core.config import get_settings
+from app.services import ObjectStorage
 
 
 class Container(containers.DeclarativeContainer):
@@ -34,7 +47,19 @@ class Container(containers.DeclarativeContainer):
 
     db_session = providers.Dependency(instance_of=AsyncSession)
 
+    object_storage = providers.Singleton(ObjectStorage, settings=providers.Callable(get_settings))
+    equipment_stability_calculator = providers.Factory(RuleBasedEquipmentStabilityCalculator)
+    defect_severity_calculator = providers.Factory(RuleBasedDefectSeverityCalculator)
+
+    admin_repository = providers.Factory(AdminRepository, session=db_session)
+    attachments_repository = providers.Factory(AttachmentsRepository, session=db_session)
     checklists_repository = providers.Factory(ChecklistsRepository, session=db_session)
+    defects_repository = providers.Factory(
+        DefectsRepository,
+        session=db_session,
+        stability_calculator=equipment_stability_calculator,
+        severity_calculator=defect_severity_calculator,
+    )
     demo_data_repository = providers.Factory(DemoDataRepository, session=db_session)
     equipment_repository = providers.Factory(EquipmentRepository, session=db_session)
     route_step_visits_repository = providers.Factory(RouteStepVisitsRepository, session=db_session)
@@ -42,6 +67,41 @@ class Container(containers.DeclarativeContainer):
     routes_repository = providers.Factory(RoutesRepository, session=db_session)
     tasks_repository = providers.Factory(TasksRepository, session=db_session)
 
+    create_equipment_use_case = providers.Factory(
+        CreateEquipmentUseCase,
+        session=db_session,
+        repository=admin_repository,
+    )
+    create_checklist_template_use_case = providers.Factory(
+        CreateChecklistTemplateUseCase,
+        session=db_session,
+        repository=admin_repository,
+    )
+    create_route_use_case = providers.Factory(
+        CreateRouteUseCase,
+        session=db_session,
+        repository=admin_repository,
+    )
+    create_round_use_case = providers.Factory(
+        CreateRoundUseCase,
+        session=db_session,
+        repository=admin_repository,
+    )
+    upload_attachment_use_case = providers.Factory(
+        UploadAttachmentUseCase,
+        session=db_session,
+        attachments_repository=attachments_repository,
+        object_storage=object_storage,
+    )
+    list_attachments_use_case = providers.Factory(
+        ListAttachmentsUseCase,
+        attachments_repository=attachments_repository,
+    )
+    download_attachment_use_case = providers.Factory(
+        DownloadAttachmentUseCase,
+        attachments_repository=attachments_repository,
+        object_storage=object_storage,
+    )
     seed_demo_data_use_case = providers.Factory(SeedDemoDataUseCase, repository=demo_data_repository)
     list_equipment_use_case = providers.Factory(ListEquipmentUseCase, repository=equipment_repository)
     get_equipment_use_case = providers.Factory(GetEquipmentUseCase, repository=equipment_repository)
@@ -49,6 +109,9 @@ class Container(containers.DeclarativeContainer):
         SubmitEquipmentReadingUseCase,
         session=db_session,
         equipment_repository=equipment_repository,
+        rounds_repository=rounds_repository,
+        route_step_visits_repository=route_step_visits_repository,
+        defects_repository=defects_repository,
     )
     confirm_route_step_use_case = providers.Factory(
         ConfirmRouteStepUseCase,
@@ -76,12 +139,15 @@ class Container(containers.DeclarativeContainer):
         SubmitChecklistItemResultUseCase,
         session=db_session,
         checklists_repository=checklists_repository,
+        route_step_visits_repository=route_step_visits_repository,
+        defects_repository=defects_repository,
     )
     finish_round_use_case = providers.Factory(
         FinishRoundUseCase,
         session=db_session,
         rounds_repository=rounds_repository,
         checklists_repository=checklists_repository,
+        route_step_visits_repository=route_step_visits_repository,
     )
     list_checklist_templates_use_case = providers.Factory(
         ListChecklistTemplatesUseCase,

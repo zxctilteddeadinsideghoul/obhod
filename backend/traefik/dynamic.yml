@@ -6,6 +6,13 @@ http:
         - web
       service: auth-service
 
+    field-health:
+      rule: "Path(`/api/field/health`)"
+      entryPoints:
+        - web
+      priority: 100
+      service: field-service
+
     field:
       rule: "PathPrefix(`/api/field`)"
       entryPoints:

@@ -4,7 +4,8 @@ from fastapi import FastAPI
 
 from app.api import api_router
 from app.containers import Container
-from app.db import Base, engine
+from app.db import engine
+from app.migrations import run_migrations
 
 
 container = Container()
@@ -13,8 +14,7 @@ container.wire(modules=["app.api.dependencies"])
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    await run_migrations()
 
     try:
         yield
