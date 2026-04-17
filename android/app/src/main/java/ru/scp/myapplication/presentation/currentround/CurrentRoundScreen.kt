@@ -1,5 +1,6 @@
 package ru.scp.myapplication.presentation.currentround
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -13,7 +14,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -28,17 +28,15 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import ru.scp.myapplication.ToirApplication
+import ru.scp.myapplication.domain.model.AssignedTask
 import ru.scp.myapplication.presentation.common.FactRow
 import ru.scp.myapplication.presentation.common.RoundStatusPill
 import ru.scp.myapplication.presentation.common.SectionCard
-import ru.scp.myapplication.presentation.common.SyncChip
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CurrentRoundScreen(
-    onOpenRoute: (String) -> Unit,
-    onOpenChecklist: (String) -> Unit,
-    onOpenPrintable: (String) -> Unit
+    onOpenTask: (String) -> Unit
 ) {
     val appContainer = (LocalContext.current.applicationContext as ToirApplication).appContainer
     val viewModel: CurrentRoundViewModel = viewModel(
@@ -49,12 +47,10 @@ fun CurrentRoundScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Текущий обход") },
+                title = { Text("Назначенные обходы") },
                 actions = {
-                    if (uiState.pendingSyncCount > 0) {
-                        TextButton(onClick = viewModel::syncNow) {
-                            Text("Отправить (${uiState.pendingSyncCount})")
-                        }
+                    TextButton(onClick = viewModel::refresh) {
+                        Text("Обновить")
                     }
                 }
             )
@@ -73,7 +69,7 @@ fun CurrentRoundScreen(
                 }
             }
 
-            uiState.round == null -> {
+            uiState.worker == null -> {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -82,10 +78,7 @@ fun CurrentRoundScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(
-                        text = uiState.errorMessage ?: "Нет доступного обходного листа",
-                        style = MaterialTheme.typography.bodyLarge
-                    )
+                    Text(uiState.errorMessage ?: "Профиль работника не получен")
                     Button(onClick = viewModel::refresh) {
                         Text("Повторить")
                     }
@@ -93,7 +86,6 @@ fun CurrentRoundScreen(
             }
 
             else -> {
-                val round = requireNotNull(uiState.round)
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
@@ -102,63 +94,8 @@ fun CurrentRoundScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     item {
-                        SectionCard(title = "Обходной лист") {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Text(
-                                        text = round.id,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                    Text(
-                                        text = "Маршрут ${round.routeId}",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                                RoundStatusPill(status = round.status)
-                            }
-                            FactRow(label = "Плановое начало", value = round.plannedStart)
-                            FactRow(label = "Плановое окончание", value = round.plannedEnd ?: "Не указано")
-                            FactRow(label = "Сотрудник", value = round.employeeId)
-                            FactRow(label = "Смена", value = round.shiftId)
-                            SyncChip(syncState = round.syncState)
-                        }
-                    }
-                    item {
-                        SectionCard(title = "Действия") {
-                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                Button(
-                                    onClick = { onOpenChecklist(round.id) },
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text("Открыть чек-лист")
-                                }
-                                OutlinedButton(
-                                    onClick = { onOpenRoute(round.routeId) },
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text("Открыть маршрутный лист")
-                                }
-                                OutlinedButton(
-                                    onClick = { onOpenPrintable(round.id) },
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text("Печатный вид чек-листа")
-                                }
-                            }
-                        }
-                    }
-                    item {
-                        SectionCard(title = "Очередь синхронизации") {
-                            FactRow(
-                                label = "Ожидают отправки",
-                                value = uiState.pendingSyncCount.toString()
-                            )
+                        SectionCard(title = "Подключение") {
+                            FactRow(label = "Base URL", value = uiState.baseUrl)
                             uiState.errorMessage?.let { message ->
                                 Text(
                                     text = message,
@@ -168,42 +105,66 @@ fun CurrentRoundScreen(
                             }
                         }
                     }
-                    items(round.objects, key = { it.seqNo }) { roundObject ->
-                        SectionCard(title = "Точка ${roundObject.seqNo}") {
-                            FactRow(label = "Оборудование", value = roundObject.equipmentId)
-                            FactRow(label = "Checkpoint", value = roundObject.checkpointId)
-                            roundObject.parameterReadings.forEach { reading ->
-                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    FactRow(
-                                        label = reading.parameterCode,
-                                        value = "${reading.value} ${reading.unit}"
-                                    )
-                                    Text(
-                                        text = if (reading.withinLimits) {
-                                            "В пределах допуска"
-                                        } else {
-                                            "Вне допуска"
-                                        },
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = if (reading.withinLimits) {
-                                            MaterialTheme.colorScheme.primary
-                                        } else {
-                                            MaterialTheme.colorScheme.error
-                                        }
-                                    )
-                                    if (!reading.comment.isNullOrBlank()) {
-                                        Text(
-                                            text = reading.comment,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
+                    item {
+                        val worker = requireNotNull(uiState.worker)
+                        SectionCard(title = "Текущий работник") {
+                            FactRow(label = "Имя", value = worker.name)
+                            FactRow(label = "ID", value = worker.id)
+                            FactRow(label = "Роль", value = worker.role)
+                        }
+                    }
+                    if (uiState.tasks.isEmpty()) {
+                        item {
+                            SectionCard(title = "Задания") {
+                                Text("Backend не вернул назначенных обходов")
                             }
+                        }
+                    } else {
+                        items(uiState.tasks, key = { it.id }) { task ->
+                            TaskCard(task = task, onOpenTask = onOpenTask)
                         }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun TaskCard(task: AssignedTask, onOpenTask: (String) -> Unit) {
+    SectionCard(
+        title = task.routeName.ifBlank { task.routeId },
+        modifier = Modifier.clickable { onOpenTask(task.id) }
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = task.id,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = task.routeId,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            RoundStatusPill(task.status)
+        }
+        FactRow(label = "Плановое начало", value = task.plannedStart)
+        FactRow(label = "Плановое окончание", value = task.plannedEnd ?: "Не указано")
+        FactRow(label = "Прогресс", value = "${task.completionPct}%")
+        Button(
+            onClick = { onOpenTask(task.id) },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Открыть обход")
         }
     }
 }
