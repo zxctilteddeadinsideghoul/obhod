@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.repositories import ChecklistsRepository, RouteStepVisitsRepository
+from app.repositories import ChecklistsRepository, DefectsRepository, RouteStepVisitsRepository
 from app.schemas import ChecklistInstanceRead, ChecklistItemResultCreate, ChecklistItemResultRead, ChecklistItemResultSubmitRead
 
 
@@ -10,10 +10,12 @@ class SubmitChecklistItemResultUseCase:
         session: AsyncSession,
         checklists_repository: ChecklistsRepository,
         route_step_visits_repository: RouteStepVisitsRepository,
+        defects_repository: DefectsRepository,
     ) -> None:
         self.session = session
         self.checklists_repository = checklists_repository
         self.route_step_visits_repository = route_step_visits_repository
+        self.defects_repository = defects_repository
 
     async def execute(
         self,
@@ -41,6 +43,13 @@ class SubmitChecklistItemResultUseCase:
             checklist_instance,
             item_template_id,
             payload,
+            user_id,
+        )
+        item_template = self.checklists_repository.find_item_template(checklist_instance, item_template_id)
+        await self.defects_repository.create_from_checklist_result(
+            checklist_instance,
+            result,
+            item_template,
             user_id,
         )
         await self.session.commit()

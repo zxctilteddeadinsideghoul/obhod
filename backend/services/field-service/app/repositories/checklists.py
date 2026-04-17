@@ -263,6 +263,13 @@ class ChecklistsRepository:
         checklist_instance: ChecklistInstance,
         item_template_id: str,
     ) -> ChecklistItemTemplate:
+        return self.find_item_template(checklist_instance, item_template_id)
+
+    def find_item_template(
+        self,
+        checklist_instance: ChecklistInstance,
+        item_template_id: str,
+    ) -> ChecklistItemTemplate:
         for item in checklist_instance.checklist_template.items:
             if item.id == item_template_id:
                 return item

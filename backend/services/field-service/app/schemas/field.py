@@ -73,6 +73,27 @@ class EquipmentParameterReadingSubmitRead(BaseModel):
     message: str
 
 
+class EquipmentParameterDefRead(BaseModel):
+    id: str
+    equipment_type_id: str
+    code: str
+    name: str
+    unit: str | None = None
+    data_type: str
+    min_value: float | None = None
+    max_value: float | None = None
+    critical_min: float | None = None
+    critical_max: float | None = None
+    payload_json: dict = Field(default_factory=dict)
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class TaskEquipmentParameterRead(BaseModel):
+    equipment_id: str
+    parameter_def: EquipmentParameterDefRead
+
+
 class RouteStepRead(BaseModel):
     id: str
     seq_no: int
@@ -301,6 +322,8 @@ class TaskDetailRead(BaseModel):
     equipment: list[EquipmentRead]
     checklist_instance: ChecklistInstanceRead | None = None
     checklist_template: ChecklistTemplateRead | None = None
+    checklist_results: list[ChecklistItemResultRead] = Field(default_factory=list)
+    equipment_parameters: list[TaskEquipmentParameterRead] = Field(default_factory=list)
 
 
 class RouteStepConfirmRead(BaseModel):

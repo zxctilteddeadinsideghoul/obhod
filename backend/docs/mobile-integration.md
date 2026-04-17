@@ -88,7 +88,7 @@ Response:
 GET /api/field/health
 ```
 
-Назначение: healthcheck для мобильного клиента.
+Назначение: открытый healthcheck для мобильного клиента. Авторизация не требуется.
 
 Response:
 
@@ -147,7 +147,7 @@ completed     обход завершён
 GET /api/field/tasks/{round_id}
 ```
 
-Назначение: получить маршрут, оборудование и связанную форму проверки.
+Назначение: получить маршрут, оборудование, связанную форму проверки, уже отправленные результаты чек-листа и параметры оборудования с допусками.
 
 Headers:
 
@@ -194,12 +194,61 @@ Response:
   },
   "checklist_template": {
     "id": "TPL-EVERYDAY-SAFETY-02",
-    "items": []
-  }
+    "items": [
+      {
+        "id": "TPL-EVERYDAY-SAFETY-02-ITEM-2",
+        "seq_no": 2,
+        "question": "Давление на выходе компрессора",
+        "answer_type": "number",
+        "required_flag": true,
+        "norm_ref": "PRESSURE_OUT"
+      }
+    ]
+  },
+  "checklist_results": [
+    {
+      "id": "a7cdaab8-26df-4e85-bf55-f97d7a0333c7",
+      "checklist_instance_id": "CL-2026-04-17-555",
+      "item_template_id": "TPL-EVERYDAY-SAFETY-02-ITEM-1",
+      "equipment_id": "EQ-KC0103",
+      "route_step_id": "ROUTE-KC0103-STEP-1",
+      "result_code": "ok",
+      "result_value": {
+        "value": true
+      },
+      "comment": "Кожухи и блокировки на месте",
+      "status": "normal"
+    }
+  ],
+  "equipment_parameters": [
+    {
+      "equipment_id": "EQ-KC0103",
+      "parameter_def": {
+        "id": "PARAM-COMPRESSOR-PRESSURE-OUT",
+        "equipment_type_id": "compressor",
+        "code": "PRESSURE_OUT",
+        "name": "Давление на выходе компрессора",
+        "unit": "MPa",
+        "data_type": "number",
+        "min_value": 1.4,
+        "max_value": 1.6,
+        "critical_min": 1.3,
+        "critical_max": 1.7
+      }
+    }
+  ]
 }
 ```
 
 Примечание: мобильное приложение не должно показывать полный чек-лист заранее как основной сценарий. Форма проверки открывается после успешного сканирования оборудования.
+
+`equipment_parameters` нужен для отправки показаний в:
+
+```http
+POST /api/field/equipment/{equipment_id}/readings
+```
+
+Мобильное приложение берёт `parameter_def.id` и передаёт его как `parameter_def_id`.
 
 ---
 
@@ -217,7 +266,7 @@ Headers:
 Authorization: Bearer dev-token
 ```
 
-Response:
+Response: полный объект `RoundRead`.
 
 ```json
 {
@@ -266,7 +315,7 @@ Request:
 }
 ```
 
-Response:
+Response: полный объект `RoundRead`.
 
 ```json
 {
@@ -591,6 +640,8 @@ POST /api/field/tasks/{round_id}/finish
 - Полная форма проверки не должна считаться доступной до успешного QR/NFC-подтверждения точки.
 - При сканировании нужно отправлять `confirm_by` и `scanned_value`.
 - При отправке формы и показаний нужно передавать `route_step_id`.
+- Для показаний нужно брать `parameter_def_id` из `equipment_parameters[].parameter_def.id` в карточке обхода.
+- Для восстановления экрана после пересоздания нужно читать `checklist_results` из карточки обхода.
 - Фотофиксацию нужно отправлять после создания результата пункта чек-листа, привязывая файл к `checklist_item_result`.
 - Если сервер вернул `409 Conflict`, форму открывать нельзя.
 - Если нет связи, мобильное приложение в будущем должно сохранить действие локально через Room и синхронизировать позже.

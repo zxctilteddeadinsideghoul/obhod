@@ -172,11 +172,23 @@ def main() -> int:
     assert_true(admin["role"] == "ADMIN", f"Expected ADMIN, got {admin}")
 
     log("health: field and reports")
-    request("GET", "/api/field/health", token=WORKER_TOKEN)
+    request("GET", "/api/field/health")
     request("GET", "/api/reports/health", token=ADMIN_TOKEN)
 
     log("seed demo data")
     request("POST", "/api/field/admin/seed-demo", token=ADMIN_TOKEN)
+
+    log("worker: demo task detail contains parameters and submitted results list")
+    demo_detail = request("GET", "/api/field/tasks/ROUND-2026-04-17-000123", token=WORKER_TOKEN).json()
+    assert_true(isinstance(demo_detail["checklist_results"], list), "Task detail has no checklist_results list")
+    assert_true(
+        any(
+            item["equipment_id"] == "EQ-KC0103"
+            and item["parameter_def"]["id"] == "PARAM-COMPRESSOR-PRESSURE-OUT"
+            for item in demo_detail["equipment_parameters"]
+        ),
+        f"Task detail has no compressor pressure parameter: {demo_detail['equipment_parameters']}",
+    )
 
     log("rbac: worker cannot create equipment")
     request(
@@ -302,7 +314,7 @@ def main() -> int:
     ).json()
     assert_true(confirm_response["equipment"]["id"] == equipment_id, f"Unexpected confirm response: {confirm_response}")
 
-    log("worker: submit checklist item 1")
+    log("worker: submit checklist item 1 with warning")
     item_1_result = request(
         "POST",
         f"/api/field/checklists/{checklist_instance_id}/items/{item_1_id}/result",
@@ -310,12 +322,13 @@ def main() -> int:
         json_body={
             "equipment_id": equipment_id,
             "route_step_id": route_step_id,
-            "result_code": "ok",
-            "result_value": {"value": True},
-            "comment": "Smoke check OK",
+            "result_code": "warning",
+            "result_value": {"value": False},
+            "comment": "Smoke check warning",
         },
     ).json()
     item_1_result_id = item_1_result["result"]["id"]
+    assert_true(item_1_result["result"]["status"] == "warning", f"Unexpected checklist result: {item_1_result}")
 
     log("worker: submit checklist item 2")
     request(
@@ -390,6 +403,11 @@ def main() -> int:
     assert_true(any(item["id"] == round_id for item in reports), f"Completed round not in reports: {reports}")
     detail = request("GET", f"/api/reports/rounds/{round_id}", token=ADMIN_TOKEN).json()
     assert_true(detail["round"]["id"] == round_id, f"Unexpected report detail: {detail}")
+    assert_true(len(detail["defects"]) >= 1, f"Auto-created defect not present in report detail: {detail}")
+    assert_true(
+        detail["defects"][0]["severity"] in {"info", "low", "medium", "high", "critical"},
+        f"Unexpected defect severity: {detail['defects']}",
+    )
     assert_true(
         any(item["id"] == attachment_id for item in detail["attachments"]),
         f"Attachment not present in report detail: {detail.get('attachments')}",

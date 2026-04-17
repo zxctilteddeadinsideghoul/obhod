@@ -1,6 +1,7 @@
 from app.repositories.admin import AdminRepository
 from app.repositories.attachments import AttachmentsRepository
 from app.repositories.checklists import ChecklistsRepository
+from app.repositories.defects import DefectsRepository
 from app.repositories.demo_data import DemoDataRepository
 from app.repositories.equipment import EquipmentRepository
 from app.repositories.rounds import RoundsRepository
@@ -12,6 +13,7 @@ __all__ = [
     "AdminRepository",
     "AttachmentsRepository",
     "ChecklistsRepository",
+    "DefectsRepository",
     "DemoDataRepository",
     "EquipmentRepository",
     "RoundsRepository",

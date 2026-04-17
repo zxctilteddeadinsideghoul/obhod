@@ -2,7 +2,15 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models import ChecklistInstance, ChecklistTemplate, Equipment, RouteTemplate, RoundInstance
+from app.models import (
+    ChecklistInstance,
+    ChecklistItemResult,
+    ChecklistTemplate,
+    Equipment,
+    EquipmentParameterDef,
+    RouteTemplate,
+    RoundInstance,
+)
 from app.models.field import RouteStep
 
 
@@ -13,7 +21,15 @@ class TasksRepository:
     async def get_detail(
         self,
         round_id: str,
-    ) -> tuple[RoundInstance, RouteTemplate, list[Equipment], ChecklistInstance | None, ChecklistTemplate | None]:
+    ) -> tuple[
+        RoundInstance,
+        RouteTemplate,
+        list[Equipment],
+        ChecklistInstance | None,
+        ChecklistTemplate | None,
+        list[ChecklistItemResult],
+        list[tuple[str, EquipmentParameterDef]],
+    ]:
         round_result = await self.session.execute(
             select(RoundInstance)
             .where(RoundInstance.id == round_id)
@@ -42,4 +58,54 @@ class TasksRepository:
         checklist_instance = checklist_result.scalars().unique().first()
         checklist_template = checklist_instance.checklist_template if checklist_instance else None
 
-        return round_instance, route, equipment, checklist_instance, checklist_template
+        checklist_results = await self._list_checklist_results(checklist_instance)
+        equipment_parameters = await self._list_equipment_parameters(equipment)
+
+        return (
+            round_instance,
+            route,
+            equipment,
+            checklist_instance,
+            checklist_template,
+            checklist_results,
+            equipment_parameters,
+        )
+
+    async def _list_checklist_results(
+        self,
+        checklist_instance: ChecklistInstance | None,
+    ) -> list[ChecklistItemResult]:
+        if checklist_instance is None:
+            return []
+
+        result = await self.session.execute(
+            select(ChecklistItemResult)
+            .where(ChecklistItemResult.checklist_instance_id == checklist_instance.id)
+            .order_by(ChecklistItemResult.created_at)
+        )
+        return list(result.scalars().all())
+
+    async def _list_equipment_parameters(
+        self,
+        equipment: list[Equipment],
+    ) -> list[tuple[str, EquipmentParameterDef]]:
+        if not equipment:
+            return []
+
+        type_ids = sorted({item.type_id for item in equipment})
+        result = await self.session.execute(
+            select(EquipmentParameterDef)
+            .where(EquipmentParameterDef.equipment_type_id.in_(type_ids))
+            .order_by(EquipmentParameterDef.equipment_type_id, EquipmentParameterDef.name)
+        )
+        parameter_defs = list(result.scalars().all())
+
+        equipment_by_type: dict[str, list[Equipment]] = {}
+        for item in equipment:
+            equipment_by_type.setdefault(item.type_id, []).append(item)
+
+        return [
+            (equipment_item.id, parameter_def)
+            for parameter_def in parameter_defs
+            for equipment_item in equipment_by_type.get(parameter_def.equipment_type_id, [])
+        ]

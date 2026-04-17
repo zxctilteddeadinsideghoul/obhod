@@ -1,5 +1,15 @@
 from app.repositories import RoundsRepository, TasksRepository
-from app.schemas import ChecklistInstanceRead, ChecklistTemplateRead, EquipmentRead, RouteRead, RoundRead, TaskDetailRead
+from app.schemas import (
+    ChecklistInstanceRead,
+    ChecklistItemResultRead,
+    ChecklistTemplateRead,
+    EquipmentParameterDefRead,
+    EquipmentRead,
+    RouteRead,
+    RoundRead,
+    TaskDetailRead,
+    TaskEquipmentParameterRead,
+)
 
 
 class GetTaskDetailUseCase:
@@ -12,7 +22,15 @@ class GetTaskDetailUseCase:
         if user_role != "ADMIN" and round_item.employee_id != user_id:
             raise PermissionError("Round is not assigned to current worker")
 
-        round_instance, route, equipment, checklist_instance, checklist_template = await self.tasks_repository.get_detail(round_id)
+        (
+            round_instance,
+            route,
+            equipment,
+            checklist_instance,
+            checklist_template,
+            checklist_results,
+            equipment_parameters,
+        ) = await self.tasks_repository.get_detail(round_id)
         return TaskDetailRead(
             round=RoundRead.model_validate(round_instance),
             route=RouteRead.model_validate(route),
@@ -27,4 +45,12 @@ class GetTaskDetailUseCase:
                 if checklist_template is not None
                 else None
             ),
+            checklist_results=[ChecklistItemResultRead.model_validate(item) for item in checklist_results],
+            equipment_parameters=[
+                TaskEquipmentParameterRead(
+                    equipment_id=equipment_id,
+                    parameter_def=EquipmentParameterDefRead.model_validate(parameter_def),
+                )
+                for equipment_id, parameter_def in equipment_parameters
+            ],
         )

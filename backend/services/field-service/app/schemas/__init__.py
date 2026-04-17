@@ -9,6 +9,7 @@ from app.schemas.field import (
     ChecklistTemplateCreate,
     ChecklistTemplateRead,
     EquipmentCreate,
+    EquipmentParameterDefRead,
     EquipmentRead,
     EquipmentParameterReadingCreate,
     EquipmentParameterReadingRead,
@@ -23,6 +24,7 @@ from app.schemas.field import (
     RouteStepVisitRead,
     RoundRead,
     TaskDetailRead,
+    TaskEquipmentParameterRead,
     TaskSummaryRead,
 )
 
@@ -37,6 +39,7 @@ __all__ = [
     "ChecklistTemplateCreate",
     "ChecklistTemplateRead",
     "EquipmentCreate",
+    "EquipmentParameterDefRead",
     "EquipmentRead",
     "EquipmentParameterReadingCreate",
     "EquipmentParameterReadingRead",
@@ -51,5 +54,6 @@ __all__ = [
     "RouteStepVisitRead",
     "RoundRead",
     "TaskDetailRead",
+    "TaskEquipmentParameterRead",
     "TaskSummaryRead",
 ]

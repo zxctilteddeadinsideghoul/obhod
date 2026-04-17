@@ -7,6 +7,7 @@ from app.repositories import (
     AttachmentsRepository,
     ChecklistsRepository,
     DemoDataRepository,
+    DefectsRepository,
     EquipmentRepository,
     RoundsRepository,
     RouteStepVisitsRepository,
@@ -53,6 +54,12 @@ class Container(containers.DeclarativeContainer):
     admin_repository = providers.Factory(AdminRepository, session=db_session)
     attachments_repository = providers.Factory(AttachmentsRepository, session=db_session)
     checklists_repository = providers.Factory(ChecklistsRepository, session=db_session)
+    defects_repository = providers.Factory(
+        DefectsRepository,
+        session=db_session,
+        stability_calculator=equipment_stability_calculator,
+        severity_calculator=defect_severity_calculator,
+    )
     demo_data_repository = providers.Factory(DemoDataRepository, session=db_session)
     equipment_repository = providers.Factory(EquipmentRepository, session=db_session)
     route_step_visits_repository = providers.Factory(RouteStepVisitsRepository, session=db_session)
@@ -104,6 +111,7 @@ class Container(containers.DeclarativeContainer):
         equipment_repository=equipment_repository,
         rounds_repository=rounds_repository,
         route_step_visits_repository=route_step_visits_repository,
+        defects_repository=defects_repository,
     )
     confirm_route_step_use_case = providers.Factory(
         ConfirmRouteStepUseCase,
@@ -132,6 +140,7 @@ class Container(containers.DeclarativeContainer):
         session=db_session,
         checklists_repository=checklists_repository,
         route_step_visits_repository=route_step_visits_repository,
+        defects_repository=defects_repository,
     )
     finish_round_use_case = providers.Factory(
         FinishRoundUseCase,

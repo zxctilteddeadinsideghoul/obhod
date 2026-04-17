@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.repositories import EquipmentRepository, RoundsRepository, RouteStepVisitsRepository
+from app.repositories import DefectsRepository, EquipmentRepository, RoundsRepository, RouteStepVisitsRepository
 from app.schemas import (
     EquipmentParameterReadingCreate,
     EquipmentParameterReadingRead,
@@ -15,11 +15,13 @@ class SubmitEquipmentReadingUseCase:
         equipment_repository: EquipmentRepository,
         rounds_repository: RoundsRepository,
         route_step_visits_repository: RouteStepVisitsRepository,
+        defects_repository: DefectsRepository,
     ) -> None:
         self.session = session
         self.equipment_repository = equipment_repository
         self.rounds_repository = rounds_repository
         self.route_step_visits_repository = route_step_visits_repository
+        self.defects_repository = defects_repository
 
     async def execute(
         self,
@@ -38,6 +40,14 @@ class SubmitEquipmentReadingUseCase:
             equipment,
             parameter_def,
             payload,
+            user_id,
+        )
+        await self.defects_repository.create_from_equipment_reading(
+            equipment,
+            parameter_def,
+            reading,
+            status,
+            message,
             user_id,
         )
         await self.session.commit()
