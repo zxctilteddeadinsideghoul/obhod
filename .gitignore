@@ -1,0 +1,40 @@
+# Environment
+.env
+.env.*
+!.env.example
+!*.env.example
+env.example
+!*.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+env/
+
+# Editors and OS
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Logs and runtime files
+*.log
+*.pid
+tmp/
+temp/
+
+# Docker/local data
+docker-compose.override.yml
+*.local.yml
+data/
+volumes/
