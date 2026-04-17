@@ -1,6 +1,7 @@
 from dependency_injector import containers, providers
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.domain import RuleBasedDefectSeverityCalculator, RuleBasedEquipmentStabilityCalculator
 from app.repositories import (
     AdminRepository,
     AttachmentsRepository,
@@ -46,6 +47,8 @@ class Container(containers.DeclarativeContainer):
     db_session = providers.Dependency(instance_of=AsyncSession)
 
     object_storage = providers.Singleton(ObjectStorage, settings=providers.Callable(get_settings))
+    equipment_stability_calculator = providers.Factory(RuleBasedEquipmentStabilityCalculator)
+    defect_severity_calculator = providers.Factory(RuleBasedDefectSeverityCalculator)
 
     admin_repository = providers.Factory(AdminRepository, session=db_session)
     attachments_repository = providers.Factory(AttachmentsRepository, session=db_session)
