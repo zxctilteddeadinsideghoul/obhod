@@ -431,6 +431,12 @@ def main() -> int:
         token=ADMIN_TOKEN,
     ).json()
     assert_true(round_json["round"]["id"] == round_id, f"Unexpected round JSON export: {round_json}")
+    round_pdf = request(
+        "GET",
+        query(f"/api/reports/rounds/{round_id}/export", {"format": "pdf"}),
+        token=ADMIN_TOKEN,
+    )
+    assert_true(round_pdf.body.startswith(b"%PDF-"), "Round PDF export is not a PDF")
 
     log("field defects: list, detail and update")
     defects = request("GET", "/api/field/defects", token=ADMIN_TOKEN).json()
@@ -466,6 +472,12 @@ def main() -> int:
         token=ADMIN_TOKEN,
     )
     assert_true(b"Equipment analytics" in analytics_csv.body, "Analytics CSV export has no equipment section")
+    analytics_pdf = request(
+        "GET",
+        query("/api/reports/analytics/export", {"format": "pdf", "limit": "10"}),
+        token=ADMIN_TOKEN,
+    )
+    assert_true(analytics_pdf.body.startswith(b"%PDF-"), "Analytics PDF export is not a PDF")
 
     log("rbac: worker cannot access reports")
     request("GET", "/api/reports/analytics/summary", token=WORKER_TOKEN, expected=403)

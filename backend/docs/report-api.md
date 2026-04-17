@@ -69,6 +69,7 @@ GET /api/field/attachments/{attachment_id}/download
 ```http
 GET /api/reports/rounds/{round_id}/export?format=csv
 GET /api/reports/rounds/{round_id}/export?format=json
+GET /api/reports/rounds/{round_id}/export?format=pdf
 ```
 
 Назначение: скачать детальный отчёт обхода файлом.
@@ -110,11 +111,12 @@ Query params:
 ```http
 GET /api/reports/analytics/export?format=csv
 GET /api/reports/analytics/export?format=json
+GET /api/reports/analytics/export?format=pdf
 ```
 
 Query params:
 
-- `format` - `csv` или `json`, по умолчанию `csv`;
+- `format` - `csv`, `json` или `pdf`, по умолчанию `csv`;
 - `limit` - количество записей в блоках оборудования и работников, по умолчанию `20`.
 
 Назначение: скачать сводку для начальника одним файлом. В экспорт входят общие показатели, аналитика по оборудованию и аналитика по работникам.

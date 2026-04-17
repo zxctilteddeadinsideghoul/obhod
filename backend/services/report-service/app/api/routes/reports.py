@@ -106,7 +106,7 @@ async def get_round_report(
 async def export_round_report(
     round_id: str,
     x_user_role: str | None = Header(default=None),
-    export_format: Literal["csv", "json"] = Query(default="csv", alias="format"),
+    export_format: Literal["csv", "json", "pdf"] = Query(default="csv", alias="format"),
     use_case: ExportRoundReportUseCase = Depends(export_round_report_use_case),
 ) -> Response:
     require_admin(x_user_role)
@@ -152,7 +152,7 @@ async def get_employee_analytics(
 @router.get("/analytics/export")
 async def export_reports_analytics(
     x_user_role: str | None = Header(default=None),
-    export_format: Literal["csv", "json"] = Query(default="csv", alias="format"),
+    export_format: Literal["csv", "json", "pdf"] = Query(default="csv", alias="format"),
     limit: int = Query(default=20, ge=1, le=100),
     use_case: ExportReportsAnalyticsUseCase = Depends(export_reports_analytics_use_case),
 ) -> Response:
