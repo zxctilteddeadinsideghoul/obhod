@@ -62,7 +62,7 @@ class DemoDataRepository:
                 location="АНГКМ / ЦПТГ / УКПГ",
                 state_id="in_operation",
                 qr_tag="QR:EQ-KC0103",
-                nfc_tag="NFC:04AABB11CC",
+                nfc_tag="E4:9E:F3:64",
                 passport_json={
                     "manufacturer": "не указано",
                     "productionDate": "2018-05-12",
@@ -72,7 +72,7 @@ class DemoDataRepository:
                 },
                 snapshot_json={
                     "serviceNorms": [{"kind": "inspection", "periodicity": "3h"}],
-                    "tags": {"qr": "QR:EQ-KC0103", "nfc": "NFC:04AABB11CC"},
+                    "tags": {"qr": "QR:EQ-KC0103", "nfc": "E4:9E:F3:64"},
                 },
             ),
             Equipment(
@@ -88,7 +88,7 @@ class DemoDataRepository:
                 location="АНГКМ / ЦПТГ / Насосная",
                 state_id="in_operation",
                 qr_tag="QR:EQ-PUMP-0201",
-                nfc_tag="NFC:04AABB22DD",
+                nfc_tag="11:D0:DC:B0",
                 passport_json={
                     "productionDate": "2020-03-18",
                     "passportNo": "PS-0201-2020",
@@ -97,7 +97,7 @@ class DemoDataRepository:
                 },
                 snapshot_json={
                     "serviceNorms": [{"kind": "inspection", "periodicity": "shift"}],
-                    "tags": {"qr": "QR:EQ-PUMP-0201", "nfc": "NFC:04AABB22DD"},
+                    "tags": {"qr": "QR:EQ-PUMP-0201", "nfc": "11:D0:DC:B0"},
                 },
             ),
             Equipment(
@@ -113,7 +113,7 @@ class DemoDataRepository:
                 location="АНГКМ / Подстанция 6 кВ",
                 state_id="in_operation",
                 qr_tag="QR:EQ-TRANS-1001",
-                nfc_tag="NFC:04AABB33EE",
+                nfc_tag="A4:87:65:1D",
                 passport_json={
                     "productionDate": "2019-10-04",
                     "passportNo": "PS-1001-2019",
@@ -122,7 +122,7 @@ class DemoDataRepository:
                 },
                 snapshot_json={
                     "serviceNorms": [{"kind": "inspection", "periodicity": "day"}],
-                    "tags": {"qr": "QR:EQ-TRANS-1001", "nfc": "NFC:04AABB33EE"},
+                    "tags": {"qr": "QR:EQ-TRANS-1001", "nfc": "A4:87:65:1D"},
                 },
             ),
         ]
@@ -267,7 +267,7 @@ class DemoDataRepository:
                 equipment_id="EQ-KC0103",
                 checkpoint_id="PI-2",
                 mandatory_flag=True,
-                confirm_by="qr",
+                confirm_by="nfc",
             ),
             RouteStep(
                 id="ROUTE-ENERGY-SHIFT-STEP-1",
@@ -276,7 +276,7 @@ class DemoDataRepository:
                 equipment_id="EQ-KC0103",
                 checkpoint_id="CP-COMPRESSOR",
                 mandatory_flag=True,
-                confirm_by="qr",
+                confirm_by="nfc",
             ),
             RouteStep(
                 id="ROUTE-ENERGY-SHIFT-STEP-2",
@@ -285,7 +285,7 @@ class DemoDataRepository:
                 equipment_id="EQ-PUMP-0201",
                 checkpoint_id="CP-PUMP",
                 mandatory_flag=True,
-                confirm_by="qr",
+                confirm_by="nfc",
             ),
             RouteStep(
                 id="ROUTE-ENERGY-SHIFT-STEP-3",
@@ -294,7 +294,7 @@ class DemoDataRepository:
                 equipment_id="EQ-TRANS-1001",
                 checkpoint_id="CP-TRANSFORMER",
                 mandatory_flag=True,
-                confirm_by="qr",
+                confirm_by="nfc",
             ),
         ]
 
@@ -527,8 +527,8 @@ class DemoDataRepository:
                 route_step_id="ROUTE-ENERGY-SHIFT-STEP-1",
                 equipment_id="EQ-KC0103",
                 employee_id="dev-worker",
-                confirmed_by="qr",
-                scanned_value="QR:EQ-KC0103",
+                confirmed_by="nfc",
+                scanned_value="E4:9E:F3:64",
                 confirmed_at=started_at + timedelta(minutes=15),
                 status="confirmed",
                 payload_json={"lat": 55.751244, "lon": 37.618423, "source": "demo-seed"},
@@ -539,8 +539,8 @@ class DemoDataRepository:
                 route_step_id="ROUTE-ENERGY-SHIFT-STEP-2",
                 equipment_id="EQ-PUMP-0201",
                 employee_id="dev-worker",
-                confirmed_by="qr",
-                scanned_value="QR:EQ-PUMP-0201",
+                confirmed_by="nfc",
+                scanned_value="11:D0:DC:B0",
                 confirmed_at=started_at + timedelta(minutes=42),
                 status="confirmed",
                 payload_json={"lat": 55.751801, "lon": 37.619015, "source": "demo-seed"},
@@ -551,8 +551,8 @@ class DemoDataRepository:
                 route_step_id="ROUTE-ENERGY-SHIFT-STEP-3",
                 equipment_id="EQ-TRANS-1001",
                 employee_id="dev-worker",
-                confirmed_by="qr",
-                scanned_value="QR:EQ-TRANS-1001",
+                confirmed_by="nfc",
+                scanned_value="A4:87:65:1D",
                 confirmed_at=started_at + timedelta(minutes=61),
                 status="confirmed",
                 payload_json={"lat": 55.752031, "lon": 37.620019, "source": "demo-seed"},
@@ -684,8 +684,8 @@ class DemoDataRepository:
                 route_step_id="ROUTE-KC0103-STEP-1",
                 equipment_id="EQ-KC0103",
                 employee_id="dev-worker-2",
-                confirmed_by="qr",
-                scanned_value="QR:EQ-KC0103",
+                confirmed_by="nfc",
+                scanned_value="E4:9E:F3:64",
                 confirmed_at=critical_round_started_at + timedelta(minutes=12),
                 status="confirmed",
                 payload_json={"lat": 55.751244, "lon": 37.618423, "source": "demo-seed"},

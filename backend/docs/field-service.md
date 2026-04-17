@@ -102,8 +102,8 @@ POST /api/field/tasks/{round_id}/steps/{route_step_id}/confirm
 
 ```json
 {
-  "confirm_by": "qr",
-  "scanned_value": "QR:EQ-KC0103",
+  "confirm_by": "nfc",
+  "scanned_value": "E4:9E:F3:64",
   "payload_json": {
     "lat": 55.751244,
     "lon": 37.618423

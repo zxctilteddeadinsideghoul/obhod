@@ -184,7 +184,7 @@ Response:
       "id": "EQ-KC0103",
       "name": "Поршневая компрессорная установка КС-0103",
       "qr_tag": "QR:EQ-KC0103",
-      "nfc_tag": "NFC:04AABB11CC"
+      "nfc_tag": "E4:9E:F3:64"
     }
   ],
   "checklist_instance": {
@@ -298,8 +298,8 @@ Request:
 
 ```json
 {
-  "confirm_by": "qr",
-  "scanned_value": "QR:EQ-KC0103",
+  "confirm_by": "nfc",
+  "scanned_value": "E4:9E:F3:64",
   "payload_json": {
     "deviceId": "MIG-DEMO-001"
   }
@@ -311,7 +311,7 @@ Request:
 ```json
 {
   "confirm_by": "nfc",
-  "scanned_value": "NFC:04AABB11CC"
+  "scanned_value": "E4:9E:F3:64"
 }
 ```
 
@@ -326,8 +326,8 @@ Response: полный объект `RoundRead`.
     "route_step_id": "ROUTE-KC0103-STEP-1",
     "equipment_id": "EQ-KC0103",
     "employee_id": "dev-worker",
-    "confirmed_by": "qr",
-    "scanned_value": "QR:EQ-KC0103",
+    "confirmed_by": "nfc",
+    "scanned_value": "E4:9E:F3:64",
     "confirmed_at": "2026-04-17T16:05:58Z",
     "status": "confirmed",
     "payload_json": {
@@ -338,7 +338,7 @@ Response: полный объект `RoundRead`.
     "id": "EQ-KC0103",
     "name": "Поршневая компрессорная установка КС-0103",
     "qr_tag": "QR:EQ-KC0103",
-    "nfc_tag": "NFC:04AABB11CC"
+    "nfc_tag": "E4:9E:F3:64"
   },
   "checklist_instance": {
     "id": "CL-2026-04-17-555",
@@ -661,7 +661,15 @@ item_template_id 1:    TPL-EVERYDAY-SAFETY-02-ITEM-1
 item_template_id 2:    TPL-EVERYDAY-SAFETY-02-ITEM-2
 parameter_def_id:      PARAM-COMPRESSOR-PRESSURE-OUT
 qr_tag:                QR:EQ-KC0103
-nfc_tag:               NFC:04AABB11CC
+nfc_tag:               E4:9E:F3:64
+```
+
+Demo NFC cards:
+
+```text
+EQ-KC0103        E4:9E:F3:64
+EQ-PUMP-0201     11:D0:DC:B0
+EQ-TRANS-1001    A4:87:65:1D
 ```
 
 ## Фотофиксация
