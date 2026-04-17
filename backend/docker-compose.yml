@@ -99,6 +99,7 @@ services:
       SERVICE_NAME: auth-service
       DATABASE_URL: postgresql://obhod:obhod@postgres:5432/obhod
       DEV_AUTH_TOKEN: dev-token
+      DEV_ADMIN_TOKEN: dev-admin-token
     depends_on:
       postgres:
         condition: service_healthy

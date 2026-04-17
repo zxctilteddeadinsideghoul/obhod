@@ -1,27 +1,27 @@
-import os
+from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Header
+from fastapi import FastAPI
 
-
-SERVICE_NAME = os.getenv("SERVICE_NAME", "field-service")
-
-app = FastAPI(title=SERVICE_NAME)
-
-
-@app.get("/api/field/health")
-async def health() -> dict[str, str]:
-    return {"service": SERVICE_NAME, "status": "ok"}
+from app.api import api_router
+from app.containers import Container
+from app.db import Base, engine
 
 
-@app.get("/api/field/whoami")
-async def whoami(
-    x_user_id: str | None = Header(default=None),
-    x_user_role: str | None = Header(default=None),
-    x_user_name: str | None = Header(default=None),
-) -> dict[str, str | None]:
-    return {
-        "service": SERVICE_NAME,
-        "user_id": x_user_id,
-        "user_role": x_user_role,
-        "user_name": x_user_name,
-    }
+container = Container()
+container.wire(packages=["app.api.routes"])
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    try:
+        yield
+    finally:
+        await engine.dispose()
+
+
+app = FastAPI(title="Obhod Field Service", lifespan=lifespan)
+app.container = container  # type: ignore[attr-defined]
+app.include_router(api_router)

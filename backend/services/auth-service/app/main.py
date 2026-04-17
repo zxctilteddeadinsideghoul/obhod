@@ -5,6 +5,7 @@ from fastapi import FastAPI, Header, Response, status
 
 SERVICE_NAME = os.getenv("SERVICE_NAME", "auth-service")
 DEV_AUTH_TOKEN = os.getenv("DEV_AUTH_TOKEN", "dev-token")
+DEV_ADMIN_TOKEN = os.getenv("DEV_ADMIN_TOKEN", "dev-admin-token")
 
 app = FastAPI(title=SERVICE_NAME)
 
@@ -21,14 +22,16 @@ async def verify(
     x_forwarded_uri: str | None = Header(default=None),
     x_forwarded_method: str | None = Header(default=None),
 ) -> dict[str, str]:
-    expected = f"Bearer {DEV_AUTH_TOKEN}"
-    if authorization != expected:
+    worker_token = f"Bearer {DEV_AUTH_TOKEN}"
+    admin_token = f"Bearer {DEV_ADMIN_TOKEN}"
+    if authorization not in {worker_token, admin_token}:
         response.status_code = status.HTTP_401_UNAUTHORIZED
         return {"detail": "Unauthorized"}
 
-    response.headers["X-User-Id"] = "dev-worker"
-    response.headers["X-User-Role"] = "WORKER"
-    response.headers["X-User-Name"] = "Development Worker"
+    is_admin = authorization == admin_token
+    response.headers["X-User-Id"] = "dev-admin" if is_admin else "dev-worker"
+    response.headers["X-User-Role"] = "ADMIN" if is_admin else "WORKER"
+    response.headers["X-User-Name"] = "Development Admin" if is_admin else "Development Worker"
     return {
         "status": "allowed",
         "method": x_forwarded_method or "",

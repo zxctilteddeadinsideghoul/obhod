@@ -34,3 +34,9 @@ Protected routes use Traefik `forwardAuth`. For the initial scaffold, pass:
 ```text
 Authorization: Bearer dev-token
 ```
+
+For admin-only scaffold endpoints, pass:
+
+```text
+Authorization: Bearer dev-admin-token
+```
