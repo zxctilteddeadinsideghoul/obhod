@@ -1,0 +1,49 @@
+http:
+  routers:
+    auth:
+      rule: "PathPrefix(`/api/auth`)"
+      entryPoints:
+        - web
+      service: auth-service
+
+    field:
+      rule: "PathPrefix(`/api/field`)"
+      entryPoints:
+        - web
+      middlewares:
+        - auth-forward
+      service: field-service
+
+    reports:
+      rule: "PathPrefix(`/api/reports`)"
+      entryPoints:
+        - web
+      middlewares:
+        - auth-forward
+      service: report-service
+
+  middlewares:
+    auth-forward:
+      forwardAuth:
+        address: "http://auth-service:8000/api/auth/verify"
+        trustForwardHeader: true
+        authResponseHeaders:
+          - X-User-Id
+          - X-User-Role
+          - X-User-Name
+
+  services:
+    auth-service:
+      loadBalancer:
+        servers:
+          - url: "http://auth-service:8000"
+
+    field-service:
+      loadBalancer:
+        servers:
+          - url: "http://field-service:8000"
+
+    report-service:
+      loadBalancer:
+        servers:
+          - url: "http://report-service:8000"
