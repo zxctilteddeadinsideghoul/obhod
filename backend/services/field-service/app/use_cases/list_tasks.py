@@ -1,16 +1,16 @@
-from app.repositories import FieldRepository
+from app.repositories import RoundsRepository
 from app.schemas import TaskSummaryRead
 
 
 class ListTasksUseCase:
-    def __init__(self, repository: FieldRepository) -> None:
-        self.repository = repository
+    def __init__(self, rounds_repository: RoundsRepository) -> None:
+        self.rounds_repository = rounds_repository
 
     async def execute(self, user_id: str, user_role: str) -> list[TaskSummaryRead]:
         if user_role == "ADMIN":
-            rounds = await self.repository.list_all_rounds()
+            rounds = await self.rounds_repository.list_all()
         else:
-            rounds = await self.repository.list_rounds_for_employee(user_id)
+            rounds = await self.rounds_repository.list_for_employee(user_id)
 
         return [
             TaskSummaryRead(

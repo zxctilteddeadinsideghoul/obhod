@@ -1,27 +1,13 @@
-import os
+from fastapi import FastAPI
 
-from fastapi import FastAPI, Header
-
-
-SERVICE_NAME = os.getenv("SERVICE_NAME", "report-service")
-
-app = FastAPI(title=SERVICE_NAME)
+from app.api import api_router
+from app.containers import Container
+from app.core.config import get_settings
 
 
-@app.get("/api/reports/health")
-async def health() -> dict[str, str]:
-    return {"service": SERVICE_NAME, "status": "ok"}
+settings = get_settings()
+container = Container(settings=settings)
 
-
-@app.get("/api/reports/whoami")
-async def whoami(
-    x_user_id: str | None = Header(default=None),
-    x_user_role: str | None = Header(default=None),
-    x_user_name: str | None = Header(default=None),
-) -> dict[str, str | None]:
-    return {
-        "service": SERVICE_NAME,
-        "user_id": x_user_id,
-        "user_role": x_user_role,
-        "user_name": x_user_name,
-    }
+app = FastAPI(title=settings.service_name)
+app.container = container  # type: ignore[attr-defined]
+app.include_router(api_router)
