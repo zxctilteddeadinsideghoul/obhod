@@ -1,3 +1,25 @@
-from app.schemas.report import CurrentUserRead, HealthRead
+from app.schemas.report import (
+    ChecklistResultRead,
+    CurrentUserRead,
+    DefectRead,
+    EmployeeAnalyticsItem,
+    EquipmentAnalyticsItem,
+    EquipmentReadingRead,
+    HealthRead,
+    ReportsSummary,
+    RoundReportDetail,
+    RoundReportListItem,
+)
 
-__all__ = ["CurrentUserRead", "HealthRead"]
+__all__ = [
+    "ChecklistResultRead",
+    "CurrentUserRead",
+    "DefectRead",
+    "EmployeeAnalyticsItem",
+    "EquipmentAnalyticsItem",
+    "EquipmentReadingRead",
+    "HealthRead",
+    "ReportsSummary",
+    "RoundReportDetail",
+    "RoundReportListItem",
+]
