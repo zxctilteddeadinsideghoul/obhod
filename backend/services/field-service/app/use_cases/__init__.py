@@ -11,6 +11,7 @@ from app.use_cases.list_tasks import ListTasksUseCase
 from app.use_cases.seed_demo_data import SeedDemoDataUseCase
 from app.use_cases.start_round import StartRoundUseCase
 from app.use_cases.submit_checklist_item_result import SubmitChecklistItemResultUseCase
+from app.use_cases.submit_equipment_reading import SubmitEquipmentReadingUseCase
 
 __all__ = [
     "FinishRoundUseCase",
@@ -26,4 +27,5 @@ __all__ = [
     "SeedDemoDataUseCase",
     "StartRoundUseCase",
     "SubmitChecklistItemResultUseCase",
+    "SubmitEquipmentReadingUseCase",
 ]

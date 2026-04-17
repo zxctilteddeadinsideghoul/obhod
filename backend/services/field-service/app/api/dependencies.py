@@ -18,6 +18,7 @@ from app.use_cases import (
     SeedDemoDataUseCase,
     StartRoundUseCase,
     SubmitChecklistItemResultUseCase,
+    SubmitEquipmentReadingUseCase,
 )
 
 
@@ -49,6 +50,13 @@ def get_get_equipment_use_case(
     container: Container = Depends(get_container),
 ) -> GetEquipmentUseCase:
     return _build_with_session(container, container.get_equipment_use_case, session)
+
+
+def get_submit_equipment_reading_use_case(
+    session: AsyncSession = Depends(get_db_session),
+    container: Container = Depends(get_container),
+) -> SubmitEquipmentReadingUseCase:
+    return _build_with_session(container, container.submit_equipment_reading_use_case, session)
 
 
 def get_list_routes_use_case(

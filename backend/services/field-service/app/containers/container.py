@@ -23,6 +23,7 @@ from app.use_cases import (
     SeedDemoDataUseCase,
     StartRoundUseCase,
     SubmitChecklistItemResultUseCase,
+    SubmitEquipmentReadingUseCase,
 )
 
 
@@ -41,6 +42,11 @@ class Container(containers.DeclarativeContainer):
     seed_demo_data_use_case = providers.Factory(SeedDemoDataUseCase, repository=demo_data_repository)
     list_equipment_use_case = providers.Factory(ListEquipmentUseCase, repository=equipment_repository)
     get_equipment_use_case = providers.Factory(GetEquipmentUseCase, repository=equipment_repository)
+    submit_equipment_reading_use_case = providers.Factory(
+        SubmitEquipmentReadingUseCase,
+        session=db_session,
+        equipment_repository=equipment_repository,
+    )
     list_routes_use_case = providers.Factory(ListRoutesUseCase, repository=routes_repository)
     get_route_use_case = providers.Factory(GetRouteUseCase, repository=routes_repository)
     list_my_rounds_use_case = providers.Factory(ListMyRoundsUseCase, repository=rounds_repository)

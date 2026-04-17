@@ -14,11 +14,14 @@ from app.api.dependencies import (
     get_seed_demo_data_use_case,
     get_start_round_use_case,
     get_submit_checklist_item_result_use_case,
+    get_submit_equipment_reading_use_case,
 )
 from app.schemas import (
     ChecklistItemResultCreate,
     ChecklistItemResultSubmitRead,
     ChecklistTemplateRead,
+    EquipmentParameterReadingCreate,
+    EquipmentParameterReadingSubmitRead,
     EquipmentRead,
     RouteRead,
     RoundRead,
@@ -39,6 +42,7 @@ from app.use_cases import (
     SeedDemoDataUseCase,
     StartRoundUseCase,
     SubmitChecklistItemResultUseCase,
+    SubmitEquipmentReadingUseCase,
 )
 
 
@@ -90,6 +94,19 @@ async def get_equipment(
         return await use_case.execute(equipment_id)
     except KeyError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Equipment not found")
+
+
+@router.post("/equipment/{equipment_id}/readings", response_model=EquipmentParameterReadingSubmitRead)
+async def submit_equipment_reading(
+    equipment_id: str,
+    payload: EquipmentParameterReadingCreate,
+    x_user_id: str = Header(),
+    use_case: SubmitEquipmentReadingUseCase = Depends(get_submit_equipment_reading_use_case),
+) -> EquipmentParameterReadingSubmitRead:
+    try:
+        return await use_case.execute(equipment_id, payload, x_user_id)
+    except KeyError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Equipment or parameter definition not found")
 
 
 @router.get("/routes", response_model=list[RouteRead])

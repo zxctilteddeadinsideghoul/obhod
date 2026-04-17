@@ -22,6 +22,39 @@ class EquipmentRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class EquipmentParameterReadingCreate(BaseModel):
+    parameter_def_id: str
+    reading_ts: datetime | None = None
+    value_num: float | None = None
+    value_text: str | None = None
+    source: str = "mobile"
+    route_step_id: str | None = None
+    checklist_item_result_id: str | None = None
+    payload_json: dict = Field(default_factory=dict)
+
+
+class EquipmentParameterReadingRead(BaseModel):
+    id: str
+    equipment_id: str
+    parameter_def_id: str
+    reading_ts: datetime
+    value_num: float | None = None
+    value_text: str | None = None
+    source: str
+    route_step_id: str | None = None
+    checklist_item_result_id: str | None = None
+    within_limits: bool | None = None
+    payload_json: dict = Field(default_factory=dict)
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class EquipmentParameterReadingSubmitRead(BaseModel):
+    reading: EquipmentParameterReadingRead
+    status: str
+    message: str
+
+
 class RouteStepRead(BaseModel):
     id: str
     seq_no: int
