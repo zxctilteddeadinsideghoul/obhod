@@ -1,69 +1,209 @@
-# Obhod Backend
+# Быстрый старт
 
-Backend infrastructure for the "Mobile inspector" hackathon MVP.
+Документ для команды разработки и демонстрации: куда отправлять запросы, где взять мобильное приложение, как поднять backend и web локально.
 
-## Quick Start
+## Диаграммы
 
-Основная инструкция для команды: [docs/quick-start.md](./docs/quick-start.md).
+Диаграмма инфраструктуры:
+```mermaid
+classDiagram
+    direction TB
 
-## Services
+    class ApiRoutes {
+        <<FastAPI routers>>
+        +auth.py
+        +field.py
+        +reports.py
+    }
 
-- `auth-service` - authentication and Traefik `forwardAuth` verification.
-- `field-service` - field workflow boundary: tasks, inspections, equipment, checklists, defects, media sync.
-- `report-service` - report generation boundary.
+    class Dependencies {
+        <<DI providers>>
+        +get_use_case()
+        +get_repository()
+        +get_current_user()
+    }
 
-## Infrastructure
+    class Container {
+        <<DI container>>
+        +repositories()
+        +use_cases()
+        +services()
+    }
 
-- Traefik as the single HTTP entrypoint.
-- PostgreSQL for service data.
-- MinIO for media and generated reports.
-- Redpanda for asynchronous service events through the Kafka API.
+    class UseCase {
+        <<application layer>>
+        +execute()
+    }
 
-## Local Run
+    class Repository {
+        <<infrastructure layer>>
+        +query()
+        +save()
+    }
 
-```bash
-docker compose up --build
+    class DomainService {
+        <<domain layer>>
+        +calculate()
+        +validate()
+    }
+
+    class Schemas {
+        <<DTO / Pydantic>>
+        +Request
+        +Response
+    }
+
+    class Models {
+        <<SQLAlchemy models>>
+        +tables
+        +relations
+    }
+
+    class Database {
+        <<PostgreSQL>>
+    }
+
+    class ObjectStorage {
+        <<MinIO>>
+    }
+
+    class Gateway {
+        <<Traefik>>
+        +forwardAuth
+    }
+
+    class AuthService {
+        +login()
+        +verify()
+        +createWorker()
+    }
+
+    class FieldService {
+        +createEquipment()
+        +createRoute()
+        +createRound()
+        +startRound()
+        +confirmStep()
+        +submitChecklistResult()
+        +uploadAttachment()
+    }
+
+    class ReportService {
+        +getRoundReport()
+        +getAnalytics()
+        +exportReport()
+    }
+
+    Gateway --> AuthService : verify token
+    Gateway --> FieldService : protected routes
+    Gateway --> ReportService : protected routes
+
+    ApiRoutes --> Dependencies
+    Dependencies --> Container
+    Container --> UseCase
+    UseCase --> Repository
+    UseCase --> DomainService
+    ApiRoutes --> Schemas
+    Repository --> Models
+    Repository --> Database
+    Repository --> ObjectStorage
+
+    AuthService --> UseCase
+    FieldService --> UseCase
+    ReportService --> UseCase
+
+```
+Ссылка на диаграмму классов backend: https://drive.google.com/file/d/1LQiA1fvFN02PiY0RRAi1_OFXr8NijqE_/view?usp=sharing
 ```
 
-Endpoints through Traefik:
+## Демо-стенд
+
+Backend уже развернут на сервере:
 
 ```text
-GET http://localhost/api/auth/health
-GET http://localhost/api/field/health
-GET http://localhost/api/reports/health
+http://144.31.181.154
 ```
 
-Protected routes use Traefik `forwardAuth`. First get a token:
-
-```bash
-curl -s http://127.0.0.1/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"worker","password":"worker123"}'
-```
-
-Then pass it to protected endpoints:
+Все клиенты должны ходить через этот base URL:
 
 ```text
-Authorization: Bearer <access_token>
+http://144.31.181.154/api/...
 ```
 
-For admin-only endpoints, login as admin:
+Порты демо-стенда:
+
+```text
+80     backend API через Traefik: http://144.31.181.154
+8080   Traefik dashboard:        http://144.31.181.154:8080
+9000   MinIO API:                http://144.31.181.154:9000
+9001   MinIO Console:            http://144.31.181.154:9001
+19092  Redpanda Kafka API
+5432   PostgreSQL
+```
+
+Для мобильного приложения и web нужен именно порт `80`, то есть base URL без явного порта:
+
+```text
+http://144.31.181.154
+```
+
+Проверка доступности:
 
 ```bash
-curl -s http://127.0.0.1/api/auth/login \
+curl http://144.31.181.154/api/auth/health
+curl http://144.31.181.154/api/field/health
+curl http://144.31.181.154/api/reports/health
+```
+
+## Авторизация
+
+Администратор для web:
+
+```bash
+curl -s http://144.31.181.154/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"admin123"}'
 ```
 
-```text
-Authorization: Bearer <admin_access_token>
-```
-
-Create a worker for the mobile app:
+Работник для мобильного приложения:
 
 ```bash
-curl -s http://127.0.0.1/api/auth/admin/workers \
-  -H "Authorization: Bearer <admin_access_token>" \
+curl -s http://144.31.181.154/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"worker","password":"worker123"}'
+```
+
+В ответе нужно взять `access_token` и передавать его в защищенные ручки:
+
+```http
+Authorization: Bearer <access_token>
+```
+
+## APK мобильного приложения
+
+APK для установки на MIG-смартфон:
+
+```text
+Ссылка на APK мобильного приложения:
+```
+
+Для входа можно использовать демо-пользователя:
+
+```text
+Логин: worker
+Пароль: worker123
+```
+
+Если нужен новый работник, его создает администратор:
+
+```bash
+ADMIN_TOKEN=$(curl -s http://144.31.181.154/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin123"}' \
+  | python3 -c 'import json,sys; print(json.load(sys.stdin)["access_token"])')
+
+curl -s -X POST http://144.31.181.154/api/auth/admin/workers \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "username": "ivanov",
@@ -75,42 +215,144 @@ curl -s http://127.0.0.1/api/auth/admin/workers \
   }'
 ```
 
-Then the worker logs in with `ivanov / ivanov123`.
+После этого работник входит в мобильное приложение с логином `ivanov` и паролем `ivanov123`.
 
-## Smoke Tests
+## Запуск backend локально
 
-With Docker Compose services running:
+Перейти в папку backend:
+
+```bash
+cd backend
+```
+
+Создать `.env`:
+
+```bash
+cp .env.example .env
+```
+
+Запустить инфраструктуру:
+
+```bash
+docker compose up -d postgres minio redpanda
+```
+
+Применить миграции field-service:
+
+```bash
+docker compose --profile tools run --rm field-migrations
+```
+
+Запустить сервисы:
+
+```bash
+docker compose up -d --build auth-service field-service report-service traefik
+```
+
+Заполнить демо-данными:
+
+```bash
+docker compose run --rm --no-deps field-service python -m app.cli.seed_demo
+```
+
+Проверить:
+
+```bash
+curl http://127.0.0.1/api/auth/health
+curl http://127.0.0.1/api/field/health
+curl http://127.0.0.1/api/reports/health
+```
+
+Локальный backend будет доступен по адресу:
+
+```text
+http://127.0.0.1
+```
+
+Локальные порты:
+
+```text
+80     backend API через Traefik: http://127.0.0.1
+8080   Traefik dashboard:        http://127.0.0.1:8080
+5432   PostgreSQL:               localhost:5432
+9000   MinIO API:                http://127.0.0.1:9000
+9001   MinIO Console:            http://127.0.0.1:9001
+19092  Redpanda Kafka API:       localhost:19092
+```
+
+Внутри Docker-сети сервисы обращаются друг к другу по внутренним именам:
+
+```text
+auth-service:8000
+field-service:8000
+report-service:8000
+postgres:5432
+minio:9000
+redpanda:9092
+```
+
+Smoke-test:
 
 ```bash
 python3 scripts/smoke_test.py
 ```
 
-The smoke test covers:
+## Запуск web локально
 
-- auth and role forwarding through Traefik;
-- demo seed;
-- admin creation of equipment, checklist template, route and round;
-- worker task flow: start, QR confirmation, checklist submission and finish;
-- equipment reading submission;
-- attachment upload to MinIO, listing and download;
-- defect management: list, detail, status update and severity override;
-- supervisor reports and analytics;
-- basic RBAC checks.
-
-Optional environment variables:
-
-```text
-SMOKE_BASE_URL=http://127.0.0.1
-SMOKE_WORKER_TOKEN=<access_token>
-SMOKE_ADMIN_TOKEN=<admin_access_token>
-```
-
-If tokens are not passed, smoke test logs in as `worker` and `admin` automatically.
-
-## Domain Unit Tests
-
-Severity and stability calculators can be checked without Docker:
+Перейти в папку frontend:
 
 ```bash
-PYTHONPATH=services/field-service python3 services/field-service/tests/test_severity_calculators.py
+cd frontend
 ```
+
+Установить зависимости:
+
+```bash
+npm install
+```
+
+Создать `.env`:
+
+```bash
+cp .env.example .env
+```
+
+Чтобы web отправлял запросы на удаленный backend, указать:
+
+```env
+VITE_DATA_SOURCE=backend
+VITE_API_BASE_URL=http://144.31.181.154
+VITE_PROXY_TARGET=http://144.31.181.154
+VITE_AUTH_TOKEN=dev-admin-token
+```
+
+Для подключения к локальному backend:
+
+```env
+VITE_DATA_SOURCE=backend
+VITE_API_BASE_URL=http://127.0.0.1
+VITE_PROXY_TARGET=http://127.0.0.1
+VITE_AUTH_TOKEN=dev-admin-token
+```
+
+Запустить web:
+
+```bash
+npm run dev
+```
+
+Открыть:
+
+```text
+http://localhost:5173
+```
+
+Порты web:
+
+```text
+5173  Vite dev server: http://localhost:5173
+```
+
+Примечание: текущий web-клиент в backend-режиме использует `VITE_AUTH_TOKEN` для запросов к API. Поэтому для демо можно оставить `dev-admin-token` или подставить `access_token`, полученный через `/api/auth/login`.
+
+## Более подробную документацию смотрите в backend/docs
