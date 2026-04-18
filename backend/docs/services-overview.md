@@ -65,6 +65,7 @@ Authorization: Bearer <admin_access_token>
 
 ## Документация по сервисам
 
+- [quick-start.md](./quick-start.md)
 - [auth-service.md](./auth-service.md)
 - [field-service.md](./field-service.md)
 - [report-service.md](./report-service.md)

@@ -2,6 +2,10 @@
 
 Backend infrastructure for the "Mobile inspector" hackathon MVP.
 
+## Quick Start
+
+Основная инструкция для команды: [docs/quick-start.md](./docs/quick-start.md).
+
 ## Services
 
 - `auth-service` - authentication and Traefik `forwardAuth` verification.
