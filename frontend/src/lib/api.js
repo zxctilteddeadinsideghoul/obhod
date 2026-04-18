@@ -63,6 +63,45 @@ async function request(path, options = {}) {
   return response.status === 204 ? null : response.json();
 }
 
+async function requestBlob(path, options = {}) {
+  const token = resolveToken(options.token);
+  const headers = {
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...options.headers,
+  };
+
+  let response;
+
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      headers,
+      method: options.method || "GET",
+    });
+  } catch {
+    const error = new Error("Сервер недоступен. Проверь адрес API и запущен ли backend.");
+    error.status = 0;
+    error.path = path;
+    throw error;
+  }
+
+  if (!response.ok) {
+    let detail = `HTTP ${response.status}`;
+    try {
+      const payload = await response.json();
+      detail = payload.detail || payload.message || detail;
+    } catch {
+      // ignore invalid json
+    }
+
+    const error = new Error(detail);
+    error.status = response.status;
+    error.path = path;
+    throw error;
+  }
+
+  return response.blob();
+}
+
 function withQuery(path, params = {}) {
   const search = new URLSearchParams();
 
@@ -161,6 +200,18 @@ export const api = {
     }
     return request(withQuery("/api/reports/rounds", params), { token });
   },
+  getRoundReport(token, roundId) {
+    if (isMockApiEnabled()) {
+      return Promise.resolve(null);
+    }
+    return request(`/api/reports/rounds/${roundId}`, { token });
+  },
+  exportRoundReport(token, roundId, params) {
+    if (isMockApiEnabled()) {
+      return Promise.reject(new Error("Экспорт отчета недоступен в mock-режиме."));
+    }
+    return requestBlob(withQuery(`/api/reports/rounds/${roundId}/export`, params), { token });
+  },
   getEquipmentAnalytics(token, params) {
     if (isMockApiEnabled()) {
       return mockApi.getEquipmentAnalytics(token, params);
@@ -172,6 +223,18 @@ export const api = {
       return mockApi.getEmployeeAnalytics(token, params);
     }
     return request(withQuery("/api/reports/analytics/employees", params), { token });
+  },
+  exportAnalytics(token, params) {
+    if (isMockApiEnabled()) {
+      return Promise.reject(new Error("Экспорт аналитики недоступен в mock-режиме."));
+    }
+    return requestBlob(withQuery("/api/reports/analytics/export", params), { token });
+  },
+  downloadFile(token, path) {
+    if (isMockApiEnabled()) {
+      return Promise.reject(new Error("Скачивание файлов недоступно в mock-режиме."));
+    }
+    return requestBlob(path, { token });
   },
   updateEquipment() {
     return notImplemented("Редактирование оборудования пока недоступно.");

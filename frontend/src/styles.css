@@ -236,6 +236,7 @@ a {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .metric-card {
@@ -397,6 +398,39 @@ a {
 .secondary-button {
   background: rgba(35, 31, 26, 0.08);
   color: var(--text);
+}
+
+.segmented-control {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px;
+  border-radius: 18px;
+  border: 1px solid rgba(35, 31, 26, 0.08);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(237, 230, 218, 0.88));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+
+.segment-button {
+  min-width: 64px;
+  border: none;
+  border-radius: 14px;
+  padding: 10px 14px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  transition: 0.18s ease;
+}
+
+.segment-button:hover {
+  color: var(--text);
+}
+
+.segment-button.active {
+  background: linear-gradient(135deg, var(--accent), #d98a57);
+  color: #fff9f2;
+  box-shadow: 0 10px 20px rgba(194, 90, 29, 0.22);
 }
 
 .inline-error,
@@ -562,8 +596,13 @@ a {
     flex-direction: column;
   }
 
-  .header-actions {
-    flex-wrap: wrap;
+  .header-actions,
+  .segmented-control {
+    width: 100%;
+  }
+
+  .segment-button {
+    flex: 1 1 0;
   }
 
   .table-row,

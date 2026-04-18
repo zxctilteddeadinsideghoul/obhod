@@ -42,6 +42,23 @@ export function StatusBadge({ status, tone }) {
   return <span className={`status-badge ${tone || "info"}`}>{status}</span>;
 }
 
+export function SegmentedControl({ value, onChange, options, ariaLabel }) {
+  return (
+    <div className="segmented-control" role="group" aria-label={ariaLabel}>
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          className={`segment-button${value === option.value ? " active" : ""}`}
+          onClick={() => onChange(option.value)}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function EmptyState({ title, description }) {
   return (
     <div className="empty-state">

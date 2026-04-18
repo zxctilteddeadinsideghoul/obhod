@@ -1,8 +1,15 @@
+import { useState } from "react";
 import { useAuth } from "../auth/AuthContext";
-import { Card, EmptyState, ErrorState, LoadingState, MetricCard, PageHeader, StatusBadge } from "../components/Ui";
+import { Card, EmptyState, ErrorState, LoadingState, MetricCard, PageHeader, SegmentedControl, StatusBadge } from "../components/Ui";
 import { api } from "../lib/api";
 import { useAsyncResource } from "../lib/hooks";
 import { formatDateTime, formatPercent, sentenceFromStatus, statusTone } from "../lib/format";
+
+const EXPORT_FORMAT_OPTIONS = [
+  { value: "pdf", label: "PDF" },
+  { value: "json", label: "JSON" },
+  { value: "csv", label: "CSV" },
+];
 
 async function loadReportProjection(token) {
   const [summary, rows] = await Promise.all([api.getReportsSummary(token), api.listRoundReports(token)]);
@@ -27,9 +34,44 @@ function getOutcome(row) {
 
 export function ReportsPage() {
   const { session } = useAuth();
+  const [selectedRoundId, setSelectedRoundId] = useState(null);
+  const [exportFormat, setExportFormat] = useState("pdf");
+  const [exporting, setExporting] = useState(false);
+  const [downloadError, setDownloadError] = useState("");
   const reportState = useAsyncResource(() => loadReportProjection(session.token), [session.token]);
+  const detailState = useAsyncResource(
+    () => (selectedRoundId ? api.getRoundReport(session.token, selectedRoundId) : Promise.resolve(null)),
+    [session.token, selectedRoundId],
+  );
   const rows = reportState.data?.rows || [];
   const summary = reportState.data?.summary;
+  const selectedRow = rows.find((row) => row.id === selectedRoundId) || null;
+  const selectedStatus = detailState.data?.round?.status || selectedRow?.status || null;
+  const canExport = selectedStatus === "completed";
+
+  const exportRoundReport = async () => {
+    if (!selectedRoundId || !canExport) {
+      return;
+    }
+
+    try {
+      setDownloadError("");
+      setExporting(true);
+      const blob = await api.exportRoundReport(session.token, selectedRoundId, { format: exportFormat });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${selectedRoundId}.${exportFormat}`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      setDownloadError(error.message || "Не удалось экспортировать отчет обхода.");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
     <div className="page-stack">
@@ -49,6 +91,7 @@ export function ReportsPage() {
       <Card title="Лента результатов" subtitle="Текущий список обходов, который возвращает report-service">
         {reportState.loading ? <LoadingState /> : null}
         {reportState.error ? <ErrorState error={reportState.error} /> : null}
+        {downloadError ? <ErrorState error={{ message: downloadError }} /> : null}
         {!reportState.loading && !reportState.error && rows.length === 0 ? (
           <EmptyState title="Нет отчетов" description="Backend пока не вернул ни одного обхода для отчётной ленты." />
         ) : null}
@@ -58,7 +101,12 @@ export function ReportsPage() {
             const outcome = getOutcome(row);
 
             return (
-              <div key={row.id} className={`table-row wide report-row ${outcome.tone}`}>
+              <button
+                type="button"
+                key={row.id}
+                className={`table-row wide report-row ${outcome.tone}${selectedRoundId === row.id ? " selected" : ""}`}
+                onClick={() => setSelectedRoundId(row.id)}
+              >
                 <div>
                   <strong>{row.route_name}</strong>
                   <span>{row.id}</span>
@@ -86,10 +134,58 @@ export function ReportsPage() {
                   <StatusBadge status={outcome.label} tone={outcome.tone} />
                   <StatusBadge status={sentenceFromStatus(row.status)} tone={statusTone(row.status)} />
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>
+      </Card>
+
+      <Card
+        title="Детальный отчет"
+        subtitle={selectedRoundId ? `Карточка обхода ${selectedRoundId}` : "Выберите обход в ленте выше"}
+        aside={
+          selectedRoundId && canExport ? (
+            <div className="header-actions">
+              <SegmentedControl
+                value={exportFormat}
+                onChange={setExportFormat}
+                options={EXPORT_FORMAT_OPTIONS}
+                ariaLabel="Формат экспорта отчета"
+              />
+              <button type="button" className="secondary-button" onClick={exportRoundReport} disabled={exporting}>
+                {exporting ? "Экспорт..." : "Скачать отчет"}
+              </button>
+            </div>
+          ) : null
+        }
+      >
+        {detailState.loading && selectedRoundId ? <LoadingState /> : null}
+        {detailState.error ? <ErrorState error={detailState.error} /> : null}
+        {!selectedRoundId ? (
+          <EmptyState title="Обход не выбран" description="Выберите строку в ленте результатов, чтобы открыть детали и файлы." />
+        ) : null}
+        {detailState.data ? (
+          <div className="detail-stack">
+            <div className="detail-grid">
+              <div>
+                <span className="eyebrow">Маршрут</span>
+                <strong>{detailState.data.round.route_name}</strong>
+              </div>
+              <div>
+                <span className="eyebrow">Исполнитель</span>
+                <strong>{detailState.data.round.employee_name}</strong>
+              </div>
+              <div>
+                <span className="eyebrow">Статус</span>
+                <strong>{sentenceFromStatus(detailState.data.round.status)}</strong>
+              </div>
+              <div>
+                <span className="eyebrow">Плановый старт</span>
+                <strong>{formatDateTime(detailState.data.round.planned_start)}</strong>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </Card>
     </div>
   );

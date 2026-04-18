@@ -1,8 +1,15 @@
+import { useState } from "react";
 import { useAuth } from "../auth/AuthContext";
-import { Card, EmptyState, ErrorState, LoadingState, MetricCard, PageHeader } from "../components/Ui";
+import { Card, EmptyState, ErrorState, LoadingState, MetricCard, PageHeader, SegmentedControl } from "../components/Ui";
 import { api } from "../lib/api";
 import { formatDateTime } from "../lib/format";
 import { useAsyncResource } from "../lib/hooks";
+
+const EXPORT_FORMAT_OPTIONS = [
+  { value: "pdf", label: "PDF" },
+  { value: "json", label: "JSON" },
+  { value: "csv", label: "CSV" },
+];
 
 async function loadAnalytics(token) {
   const [summary, equipment, employees] = await Promise.all([
@@ -20,8 +27,34 @@ async function loadAnalytics(token) {
 
 export function AnalyticsPage() {
   const { session } = useAuth();
+  const [exportFormat, setExportFormat] = useState("pdf");
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState("");
   const analyticsState = useAsyncResource(() => loadAnalytics(session.token), [session.token]);
   const data = analyticsState.data;
+
+  const exportAnalytics = async () => {
+    try {
+      setExporting(true);
+      setExportError("");
+      const blob = await api.exportAnalytics(session.token, {
+        format: exportFormat,
+        limit: 20,
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `analytics-report.${exportFormat}`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      setExportError(error.message || "Не удалось экспортировать аналитику.");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
     <div className="page-stack">
@@ -29,10 +62,24 @@ export function AnalyticsPage() {
         eyebrow="Управленческие метрики"
         title="Аналитика"
         subtitle="Сводные показатели из report-service по обходам, оборудованию и исполнителям."
+        actions={
+          <div className="header-actions">
+            <SegmentedControl
+              value={exportFormat}
+              onChange={setExportFormat}
+              options={EXPORT_FORMAT_OPTIONS}
+              ariaLabel="Формат экспорта аналитики"
+            />
+            <button type="button" className="secondary-button" onClick={exportAnalytics} disabled={exporting}>
+              {exporting ? "Экспорт..." : "Скачать сводку"}
+            </button>
+          </div>
+        }
       />
 
       {analyticsState.loading ? <LoadingState /> : null}
       {analyticsState.error ? <ErrorState error={analyticsState.error} /> : null}
+      {exportError ? <ErrorState error={{ message: exportError }} /> : null}
 
       {data ? (
         <>
