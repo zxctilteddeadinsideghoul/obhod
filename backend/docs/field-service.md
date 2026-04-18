@@ -57,7 +57,7 @@ GET /api/field/health
 
 ```http
 POST /api/field/admin/seed-demo
-Authorization: Bearer dev-admin-token
+Authorization: Bearer <admin_access_token>
 ```
 
 Заполняет БД демо-данными:
@@ -254,7 +254,7 @@ Seed:
 
 ```bash
 curl -s -X POST http://127.0.0.1/api/field/admin/seed-demo \
-  -H "Authorization: Bearer dev-admin-token"
+  -H "Authorization: Bearer <admin_access_token>"
 ```
 
 ## Кодовая структура

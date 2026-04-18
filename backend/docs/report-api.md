@@ -7,10 +7,10 @@ API для веб-интерфейса начальника. Все запрос
 Нужен токен начальника:
 
 ```http
-Authorization: Bearer dev-admin-token
+Authorization: Bearer <admin_access_token>
 ```
 
-Работник с `Bearer dev-token` получает `403 Forbidden`.
+Работник с `Bearer <access_token>` получает `403 Forbidden`.
 
 ## Сводка
 

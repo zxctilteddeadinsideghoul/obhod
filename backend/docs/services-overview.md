@@ -83,7 +83,7 @@ docker compose up -d auth-service field-service report-service traefik
 
 ```bash
 curl -s -X POST http://127.0.0.1/api/field/admin/seed-demo \
-  -H "Authorization: Bearer dev-admin-token"
+  -H "Authorization: Bearer <admin_access_token>"
 ```
 
 Smoke-test:
@@ -92,9 +92,20 @@ Smoke-test:
 python3 scripts/smoke_test.py
 ```
 
-## Demo-токены
+## Авторизация
 
-```text
-dev-token        WORKER
-dev-admin-token  ADMIN
+Клиенты получают токен через `auth-service`:
+
+```bash
+curl -s http://127.0.0.1/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"worker","password":"worker123"}'
+```
+
+Для веб-интерфейса начальника:
+
+```bash
+curl -s http://127.0.0.1/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin123"}'
 ```

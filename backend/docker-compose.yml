@@ -101,6 +101,12 @@ services:
       DATABASE_URL: ${DATABASE_URL:-postgresql://obhod:obhod@postgres:5432/obhod}
       DEV_AUTH_TOKEN: ${DEV_AUTH_TOKEN:-dev-token}
       DEV_ADMIN_TOKEN: ${DEV_ADMIN_TOKEN:-dev-admin-token}
+      AUTH_SECRET: ${AUTH_SECRET:-change-me-in-production}
+      ACCESS_TOKEN_TTL_SEC: ${ACCESS_TOKEN_TTL_SEC:-43200}
+      WORKER_LOGIN: ${WORKER_LOGIN:-worker}
+      WORKER_PASSWORD: ${WORKER_PASSWORD:-worker123}
+      ADMIN_LOGIN: ${ADMIN_LOGIN:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
     depends_on:
       postgres:
         condition: service_healthy

@@ -19,12 +19,12 @@
 
 Отчеты доступны только роли `ADMIN`.
 
-Работник с `Bearer dev-token` получает `403 Forbidden`.
+Работник с `Bearer <access_token>` получает `403 Forbidden`.
 
 Токен начальника:
 
 ```text
-Authorization: Bearer dev-admin-token
+Authorization: Bearer <admin_access_token>
 ```
 
 ## API
@@ -203,14 +203,14 @@ docker compose up -d postgres minio redpanda auth-service field-service report-s
 
 ```bash
 curl -s http://127.0.0.1/api/reports/health \
-  -H "Authorization: Bearer dev-admin-token"
+  -H "Authorization: Bearer <admin_access_token>"
 ```
 
 Экспорт PDF:
 
 ```bash
 curl -L "http://127.0.0.1/api/reports/rounds/ROUND-2026-04-17-000123/export?format=pdf" \
-  -H "Authorization: Bearer dev-admin-token" \
+  -H "Authorization: Bearer <admin_access_token>" \
   -o round-report.pdf
 ```
 

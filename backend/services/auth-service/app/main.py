@@ -11,3 +11,8 @@ container = Container(settings=settings)
 app = FastAPI(title=settings.service_name)
 app.container = container  # type: ignore[attr-defined]
 app.include_router(api_router)
+
+
+@app.on_event("startup")
+async def startup() -> None:
+    await container.tokens_repository().initialize_storage()

@@ -1,6 +1,6 @@
 from app.core.config import Settings
 from app.repositories import TokensRepository
-from app.use_cases import GetCurrentUserUseCase, VerifyAccessUseCase
+from app.use_cases import CreateWorkerUseCase, GetCurrentUserUseCase, LoginUseCase, VerifyAccessUseCase
 
 
 class Container:
@@ -15,3 +15,9 @@ class Container:
 
     def get_current_user_use_case(self) -> GetCurrentUserUseCase:
         return GetCurrentUserUseCase(tokens_repository=self.tokens_repository())
+
+    def login_use_case(self) -> LoginUseCase:
+        return LoginUseCase(settings=self.settings, tokens_repository=self.tokens_repository())
+
+    def create_worker_use_case(self) -> CreateWorkerUseCase:
+        return CreateWorkerUseCase(tokens_repository=self.tokens_repository())

@@ -12,8 +12,8 @@ from urllib.request import Request, urlopen
 
 
 BASE_URL = os.getenv("SMOKE_BASE_URL", "http://127.0.0.1").rstrip("/")
-WORKER_TOKEN = os.getenv("SMOKE_WORKER_TOKEN", "dev-token")
-ADMIN_TOKEN = os.getenv("SMOKE_ADMIN_TOKEN", "dev-admin-token")
+WORKER_TOKEN = os.getenv("SMOKE_WORKER_TOKEN")
+ADMIN_TOKEN = os.getenv("SMOKE_ADMIN_TOKEN")
 TIMEOUT_SEC = float(os.getenv("SMOKE_TIMEOUT_SEC", "15"))
 
 
@@ -152,7 +152,20 @@ def query(path: str, params: dict[str, str]) -> str:
     return f"{path}?{urlencode(params)}"
 
 
+def login(username: str, password: str) -> str:
+    response = request(
+        "POST",
+        "/api/auth/login",
+        json_body={"username": username, "password": password},
+    ).json()
+    assert_true(response["token_type"] == "bearer", f"Unexpected token type: {response}")
+    assert_true(bool(response["access_token"]), f"Empty login token: {response}")
+    return response["access_token"]
+
+
 def main() -> int:
+    global ADMIN_TOKEN, WORKER_TOKEN
+
     suffix = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
     equipment_id = f"EQ-SMOKE-{suffix}"
     template_id = f"TPL-SMOKE-{suffix}"
@@ -163,6 +176,10 @@ def main() -> int:
 
     log(f"base url: {BASE_URL}")
 
+    log("auth: login worker and admin")
+    WORKER_TOKEN = WORKER_TOKEN or login("worker", "worker123")
+    ADMIN_TOKEN = ADMIN_TOKEN or login("admin", "admin123")
+
     log("auth: current worker")
     worker = request("GET", "/api/auth/me", token=WORKER_TOKEN).json()
     assert_true(worker["role"] == "WORKER", f"Expected WORKER, got {worker}")
@@ -170,6 +187,28 @@ def main() -> int:
     log("auth: current admin")
     admin = request("GET", "/api/auth/me", token=ADMIN_TOKEN).json()
     assert_true(admin["role"] == "ADMIN", f"Expected ADMIN, got {admin}")
+
+    log("auth: admin creates worker and worker can login")
+    created_worker_username = f"worker-smoke-{suffix}"
+    created_worker_password = "worker-smoke-123"
+    created_worker = request(
+        "POST",
+        "/api/auth/admin/workers",
+        token=ADMIN_TOKEN,
+        json_body={
+            "username": created_worker_username,
+            "password": created_worker_password,
+            "full_name": "Smoke Test Worker",
+            "employee_id": f"worker-smoke-{suffix}",
+            "qualification_id": "OPERATOR-TU",
+            "department_id": "DEPT-UGP",
+        },
+        expected=201,
+    ).json()
+    assert_true(created_worker["role"] == "WORKER", f"Expected created WORKER, got {created_worker}")
+    created_worker_token = login(created_worker_username, created_worker_password)
+    created_worker_me = request("GET", "/api/auth/me", token=created_worker_token).json()
+    assert_true(created_worker_me["id"] == created_worker["id"], f"Unexpected created worker login: {created_worker_me}")
 
     log("health: field and reports")
     request("GET", "/api/field/health")

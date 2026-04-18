@@ -3,7 +3,7 @@
 API для веб-интерфейса начальника. Все ручки требуют роль `ADMIN`.
 
 ```http
-Authorization: Bearer dev-admin-token
+Authorization: Bearer <admin_access_token>
 ```
 
 ## Создать оборудование
@@ -117,14 +117,14 @@ POST /api/field/admin/rounds
 
 ```http
 GET /api/field/tasks/my
-Authorization: Bearer dev-token
+Authorization: Bearer <access_token>
 ```
 
 После сканирования QR оборудования backend вернёт чек-лист:
 
 ```http
 POST /api/field/tasks/ROUND-DEMO-FAN-001/steps/ROUTE-DEMO-FAN-STEP-1/confirm
-Authorization: Bearer dev-token
+Authorization: Bearer <access_token>
 Content-Type: application/json
 
 {

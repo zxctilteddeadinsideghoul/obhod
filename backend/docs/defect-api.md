@@ -3,7 +3,7 @@
 API для начальника. Все ручки требуют роль `ADMIN`.
 
 ```http
-Authorization: Bearer dev-admin-token
+Authorization: Bearer <admin_access_token>
 ```
 
 ## Список дефектов
