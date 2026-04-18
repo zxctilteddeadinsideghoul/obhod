@@ -751,17 +751,19 @@ Content-Type: multipart/form-data
 
 Form fields:
 
-- `entity_type` - например `checklist_item_result`;
-- `entity_id` - id результата пункта чек-листа;
+- `entity_type` - например `checklist_result` или `checklist_item_result`;
+- `entity_id` - `result.id` из ответа отправки пункта чек-листа;
 - `payload_json` - дополнительная информация строкой JSON;
 - `file` - фото или медиафайл.
+
+Для мобильного приложения рекомендуется использовать `entity_type=checklist_result`. Backend также принимает старое имя `checklist_item_result`.
 
 Пример:
 
 ```bash
 curl -X POST http://localhost/api/field/attachments \
   -H "Authorization: Bearer <access_token>" \
-  -F "entity_type=checklist_item_result" \
+  -F "entity_type=checklist_result" \
   -F "entity_id=a7cdaab8-26df-4e85-bf55-f97d7a0333c7" \
   -F "payload_json={\"caption\":\"Фото дефекта\"}" \
   -F "file=@photo.jpg;type=image/jpeg"

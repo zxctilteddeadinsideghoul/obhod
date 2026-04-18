@@ -175,6 +175,15 @@ GET /api/field/attachments
 GET /api/field/attachments/{attachment_id}/download
 ```
 
+Для фото к пункту чек-листа мобильное приложение передает:
+
+```text
+entity_type=checklist_result
+entity_id=<result.id из ответа отправки пункта чек-листа>
+```
+
+Backend также принимает каноническое имя `checklist_item_result`.
+
 Метаданные хранятся в Postgres, файл хранится в MinIO.
 
 ### Дефекты

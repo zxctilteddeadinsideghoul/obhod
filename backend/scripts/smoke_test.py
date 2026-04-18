@@ -398,7 +398,7 @@ def main() -> int:
         "/api/field/attachments",
         token=WORKER_TOKEN,
         fields={
-            "entity_type": "checklist_item_result",
+            "entity_type": "checklist_result",
             "entity_id": item_1_result_id,
             "payload_json": json.dumps({"caption": "Smoke photo", "routeStepId": route_step_id}),
         },
@@ -413,7 +413,7 @@ def main() -> int:
     log("worker: list and download attachment")
     attachments = request(
         "GET",
-        query("/api/field/attachments", {"entity_type": "checklist_item_result", "entity_id": item_1_result_id}),
+        query("/api/field/attachments", {"entity_type": "checklist_result", "entity_id": item_1_result_id}),
         token=WORKER_TOKEN,
     ).json()
     assert_true(any(item["id"] == attachment_id for item in attachments), f"Attachment not listed: {attachments}")

@@ -28,6 +28,8 @@ class UploadAttachmentUseCase:
         author_id: str,
         user_role: str,
     ) -> AttachmentRead:
+        await self.attachments_repository.ensure_access(entity_type, entity_id, author_id, user_role)
+
         content = await file.read()
         if not content:
             raise ValueError("File is empty")

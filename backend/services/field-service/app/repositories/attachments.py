@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import Attachment, AuditLog, ChecklistInstance, ChecklistItemResult, Defect, Equipment, JournalEntry, RoundInstance
 
 
-SUPPORTED_ENTITY_TYPES = {"checklist_item_result", "equipment", "defect", "round"}
+SUPPORTED_ENTITY_TYPES = {"checklist_item_result", "checklist_result", "equipment", "defect", "round"}
 
 
 class AttachmentsRepository:
@@ -27,6 +27,7 @@ class AttachmentsRepository:
         author_id: str,
         user_role: str,
     ) -> Attachment:
+        entity_type = self.normalize_entity_type(entity_type)
         await self.ensure_access(entity_type, entity_id, author_id, user_role)
         attachment = Attachment(
             id=str(uuid4()),
@@ -88,6 +89,7 @@ class AttachmentsRepository:
         author_id: str,
         user_role: str,
     ) -> list[Attachment]:
+        entity_type = self.normalize_entity_type(entity_type)
         await self.ensure_access(entity_type, entity_id, author_id, user_role)
         result = await self.session.execute(
             select(Attachment)
@@ -107,6 +109,7 @@ class AttachmentsRepository:
         return attachment
 
     async def ensure_access(self, entity_type: str, entity_id: str, author_id: str, user_role: str) -> None:
+        entity_type = self.normalize_entity_type(entity_type)
         if entity_type not in SUPPORTED_ENTITY_TYPES:
             raise ValueError(f"Unsupported attachment entity type: {entity_type}")
 
@@ -129,6 +132,12 @@ class AttachmentsRepository:
             return
 
         raise PermissionError("Only admin can attach files to this entity type")
+
+    def normalize_entity_type(self, entity_type: str) -> str:
+        aliases = {
+            "checklist_result": "checklist_item_result",
+        }
+        return aliases.get(entity_type, entity_type)
 
     async def _ensure_entity_exists(self, entity_type: str, entity_id: str) -> None:
         model_by_type = {
