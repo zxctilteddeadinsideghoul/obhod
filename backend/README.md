@@ -184,7 +184,7 @@ Authorization: Bearer <access_token>
 APK для установки на MIG-смартфон:
 
 ```text
-Ссылка на APK мобильного приложения:
+Ссылка на APK мобильного приложения: https://drive.google.com/file/d/1R7Tq-P8lje7qRuOCF0-wPGPRid-4QlXD/view?usp=sharing
 ```
 
 Для входа можно использовать демо-пользователя:
@@ -253,6 +253,12 @@ docker compose up -d --build auth-service field-service report-service traefik
 
 ```bash
 docker compose run --rm --no-deps field-service python -m app.cli.seed_demo
+```
+
+Если нужно загрузить только справочники без обходов:
+
+```bash
+docker compose run --rm --no-deps field-service python -m app.cli.seed_demo --without-rounds
 ```
 
 Проверить:

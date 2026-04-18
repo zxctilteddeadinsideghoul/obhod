@@ -107,12 +107,13 @@ async def whoami(
 
 @router.post("/admin/seed-demo")
 async def seed_demo(
+    include_rounds: bool = Query(default=True),
     x_user_role: str | None = Header(default=None),
     use_case: SeedDemoDataUseCase = Depends(get_seed_demo_data_use_case),
-) -> dict[str, str]:
+) -> dict[str, str | bool]:
     if x_user_role != "ADMIN":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin role required")
-    return await use_case.execute()
+    return await use_case.execute(include_rounds=include_rounds)
 
 
 @router.post("/admin/equipment", response_model=EquipmentRead, status_code=status.HTTP_201_CREATED)

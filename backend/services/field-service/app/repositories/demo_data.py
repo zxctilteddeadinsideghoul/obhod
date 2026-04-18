@@ -24,23 +24,28 @@ class DemoDataRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    async def seed(self) -> None:
+    async def seed(self, include_rounds: bool = True) -> None:
         now = datetime.now(timezone.utc)
-        await self._merge_all(
-            [
-                *self._equipment(),
-                *self._parameter_defs(),
-                *self._employees(),
-                self._shift(now),
-                *self._routes(),
-                *self._route_steps(),
-                *self._checklist_templates(),
-                *self._checklist_items(),
-                *self._rounds(now),
-                *self._checklist_instances(),
-                *self._completed_round_data(now),
-            ]
-        )
+        objects = [
+            *self._equipment(),
+            *self._parameter_defs(),
+            *self._employees(),
+            self._shift(now),
+            *self._routes(),
+            *self._route_steps(),
+            *self._checklist_templates(),
+            *self._checklist_items(),
+        ]
+        if include_rounds:
+            objects.extend(
+                [
+                    *self._rounds(now),
+                    *self._checklist_instances(),
+                    *self._completed_round_data(now),
+                ]
+            )
+
+        await self._merge_all(objects)
         await self.session.commit()
 
     async def _merge_all(self, objects: list[object]) -> None:
