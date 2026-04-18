@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../auth/AuthContext";
 import { Card, EmptyState, ErrorState, LoadingState, MetricCard, PageHeader, SegmentedControl, StatusBadge } from "../components/Ui";
 import { api } from "../lib/api";
@@ -32,12 +32,19 @@ function getOutcome(row) {
   return { label: sentenceFromStatus(row.status), tone: statusTone(row.status) };
 }
 
+function isImageAttachment(attachment) {
+  return String(attachment?.mime_type || "").startsWith("image/");
+}
+
 export function ReportsPage() {
   const { session } = useAuth();
   const [selectedRoundId, setSelectedRoundId] = useState(null);
   const [exportFormat, setExportFormat] = useState("pdf");
   const [exporting, setExporting] = useState(false);
   const [downloadError, setDownloadError] = useState("");
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const [photoError, setPhotoError] = useState("");
+  const [openingPhotoId, setOpeningPhotoId] = useState("");
   const reportState = useAsyncResource(() => loadReportProjection(session.token), [session.token]);
   const detailState = useAsyncResource(
     () => (selectedRoundId ? api.getRoundReport(session.token, selectedRoundId) : Promise.resolve(null)),
@@ -48,6 +55,14 @@ export function ReportsPage() {
   const selectedRow = rows.find((row) => row.id === selectedRoundId) || null;
   const selectedStatus = detailState.data?.round?.status || selectedRow?.status || null;
   const canExport = selectedStatus === "completed";
+
+  useEffect(() => {
+    return () => {
+      if (photoPreview?.url) {
+        window.URL.revokeObjectURL(photoPreview.url);
+      }
+    };
+  }, [photoPreview]);
 
   const exportRoundReport = async () => {
     if (!selectedRoundId || !canExport) {
@@ -73,6 +88,37 @@ export function ReportsPage() {
     }
   };
 
+  const openDefectPhoto = async (attachment) => {
+    try {
+      setPhotoError("");
+      setOpeningPhotoId(attachment.id);
+      const blob = await api.downloadFile(session.token, attachment.download_url);
+      const url = window.URL.createObjectURL(blob);
+      setPhotoPreview((current) => {
+        if (current?.url) {
+          window.URL.revokeObjectURL(current.url);
+        }
+        return {
+          url,
+          title: attachment.file_name || "Фото дефекта",
+        };
+      });
+    } catch (error) {
+      setPhotoError(error.message || "Не удалось открыть фотографию дефекта.");
+    } finally {
+      setOpeningPhotoId("");
+    }
+  };
+
+  const closePhotoPreview = () => {
+    setPhotoPreview((current) => {
+      if (current?.url) {
+        window.URL.revokeObjectURL(current.url);
+      }
+      return null;
+    });
+  };
+
   return (
     <div className="page-stack">
       <PageHeader
@@ -92,6 +138,7 @@ export function ReportsPage() {
         {reportState.loading ? <LoadingState /> : null}
         {reportState.error ? <ErrorState error={reportState.error} /> : null}
         {downloadError ? <ErrorState error={{ message: downloadError }} /> : null}
+        {photoError ? <ErrorState error={{ message: photoError }} /> : null}
         {!reportState.loading && !reportState.error && rows.length === 0 ? (
           <EmptyState title="Нет отчетов" description="Backend пока не вернул ни одного обхода для отчётной ленты." />
         ) : null}
@@ -184,9 +231,68 @@ export function ReportsPage() {
                 <strong>{formatDateTime(detailState.data.round.planned_start)}</strong>
               </div>
             </div>
+
+            <Card title="Дефекты" subtitle="Замечания, зафиксированные в рамках обхода">
+              {detailState.data.defects.length ? (
+                <div className="table-like">
+                  {detailState.data.defects.map((defect) => {
+                    const defectPhotos = detailState.data.attachments.filter(
+                      (attachment) => attachment.entity_type === "defect" && attachment.entity_id === defect.id && isImageAttachment(attachment),
+                    );
+
+                    return (
+                      <div key={defect.id} className="table-row wide">
+                        <div>
+                          <strong>{defect.title}</strong>
+                          <span>{defect.equipment_name}</span>
+                        </div>
+                        <span>{formatDateTime(defect.detected_at)}</span>
+                        <span>{defect.severity}</span>
+                        <span>{defect.description || "Описание не указано"}</span>
+                        <StatusBadge status={sentenceFromStatus(defect.status)} tone={statusTone(defect.status)} />
+                        {defectPhotos.length ? (
+                          <button
+                            type="button"
+                            className="secondary-button"
+                            onClick={() => openDefectPhoto(defectPhotos[0])}
+                            disabled={openingPhotoId === defectPhotos[0].id}
+                          >
+                            {openingPhotoId === defectPhotos[0].id
+                              ? "Открытие..."
+                              : defectPhotos.length > 1
+                                ? `Фото (${defectPhotos.length})`
+                                : "Фото"}
+                          </button>
+                        ) : (
+                          <span className="inline-note compact">Без фото</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <EmptyState title="Дефектов нет" description="Для выбранного обхода backend не вернул зарегистрированных дефектов." />
+              )}
+            </Card>
           </div>
         ) : null}
       </Card>
+
+      {photoPreview ? (
+        <div className="image-modal" onClick={closePhotoPreview}>
+          <div className="image-modal-card" onClick={(event) => event.stopPropagation()}>
+            <div className="card-head">
+              <div>
+                <h3>{photoPreview.title}</h3>
+              </div>
+              <button type="button" className="ghost-button modal-close" onClick={closePhotoPreview}>
+                Закрыть
+              </button>
+            </div>
+            <img className="image-preview" src={photoPreview.url} alt={photoPreview.title} />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

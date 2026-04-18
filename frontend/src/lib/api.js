@@ -127,6 +127,16 @@ export const api = {
     }
     return request("/api/auth/me", { token });
   },
+  createWorker(token, body) {
+    if (isMockApiEnabled()) {
+      return Promise.reject(new Error("Создание работника недоступно в mock-режиме."));
+    }
+    return request("/api/auth/admin/workers", {
+      method: "POST",
+      token,
+      body,
+    });
+  },
   listTasks(token) {
     if (isMockApiEnabled()) {
       return mockApi.listTasks(token);
