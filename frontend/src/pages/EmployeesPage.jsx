@@ -21,7 +21,7 @@ async function loadEmployeesProjection(token) {
   return employees.map((employee) => ({
     ...employee,
     active: employee.rounds_total - employee.rounds_completed,
-    lastRoundStatus: latestStatuses.get(employee.employee_id) || "planned",
+    lastRoundStatus: latestStatuses.get(employee.employee_id) || "free",
   }));
 }
 
@@ -32,9 +32,12 @@ export function EmployeesPage() {
   const [createError, setCreateError] = useState("");
   const [createSuccess, setCreateSuccess] = useState("");
   const [form, setForm] = useState({
-    id: "",
-    name: "",
+    username: "",
+    full_name: "",
     password: "",
+    employee_id: "",
+    qualification_id: "OPERATOR-TU",
+    department_id: "DEPT-UGP",
   });
   const projectionState = useAsyncResource(() => loadEmployeesProjection(session.token), [session.token, reloadKey]);
   const employees = projectionState.data || [];
@@ -46,8 +49,8 @@ export function EmployeesPage() {
   const createWorker = async (event) => {
     event.preventDefault();
 
-    if (!form.id.trim() || !form.name.trim() || !form.password.trim()) {
-      setCreateError("Заполните ID работника, имя и пароль.");
+    if (!form.username.trim() || !form.full_name.trim() || !form.password.trim()) {
+      setCreateError("Заполните логин, имя и пароль.");
       setCreateSuccess("");
       return;
     }
@@ -57,15 +60,21 @@ export function EmployeesPage() {
       setCreateError("");
       setCreateSuccess("");
       await api.createWorker(session.token, {
-        id: form.id.trim(),
-        name: form.name.trim(),
+        username: form.username.trim(),
+        full_name: form.full_name.trim(),
         password: form.password,
+        ...(form.employee_id.trim() ? { employee_id: form.employee_id.trim() } : {}),
+        ...(form.qualification_id.trim() ? { qualification_id: form.qualification_id.trim() } : {}),
+        ...(form.department_id.trim() ? { department_id: form.department_id.trim() } : {}),
       });
       setCreateSuccess("Работник создан.");
       setForm({
-        id: "",
-        name: "",
+        username: "",
+        full_name: "",
         password: "",
+        employee_id: "",
+        qualification_id: "OPERATOR-TU",
+        department_id: "DEPT-UGP",
       });
       setReloadKey((current) => current + 1);
     } catch (error) {
@@ -80,7 +89,7 @@ export function EmployeesPage() {
       <PageHeader
         eyebrow="Исполнители"
         title="Сотрудники"
-        subtitle="Агрегированная статистика по сотрудникам из report-service."
+        subtitle="Агрегированная статистика по сотрудникам."
       />
 
       <div className="metrics-grid">
@@ -92,20 +101,24 @@ export function EmployeesPage() {
         />
       </div>
 
-      <Card title="Создать работника" subtitle="Новый worker через admin API auth-service">
+      <Card title="Создать работника" subtitle="">
         {createError ? <div className="inline-error">{createError}</div> : null}
         {createSuccess ? <div className="inline-note">{createSuccess}</div> : null}
         <form className="inline-form" onSubmit={createWorker}>
           <div className="inline-form-row">
             <label>
-              <span>ID работника</span>
-              <input value={form.id} onChange={(event) => updateForm("id", event.target.value)} placeholder="dev-worker-3" />
+              <span>Логин</span>
+              <input
+                value={form.username}
+                onChange={(event) => updateForm("username", event.target.value)}
+                placeholder="worker-3"
+              />
             </label>
             <label>
               <span>Имя</span>
               <input
-                value={form.name}
-                onChange={(event) => updateForm("name", event.target.value)}
+                value={form.full_name}
+                onChange={(event) => updateForm("full_name", event.target.value)}
                 placeholder="Новый работник"
               />
             </label>
@@ -120,7 +133,32 @@ export function EmployeesPage() {
                 placeholder="Введите пароль"
               />
             </label>
-            <div />
+            <label>
+              <span>Табельный номер</span>
+              <input
+                value={form.employee_id}
+                onChange={(event) => updateForm("employee_id", event.target.value)}
+                placeholder="EMP-201"
+              />
+            </label>
+          </div>
+          <div className="inline-form-row">
+            <label>
+              <span>Квалификация</span>
+              <input
+                value={form.qualification_id}
+                onChange={(event) => updateForm("qualification_id", event.target.value)}
+                placeholder="OPERATOR-TU"
+              />
+            </label>
+            <label>
+              <span>Подразделение</span>
+              <input
+                value={form.department_id}
+                onChange={(event) => updateForm("department_id", event.target.value)}
+                placeholder="DEPT-UGP"
+              />
+            </label>
           </div>
           <div className="header-actions">
             <button type="submit" className="primary-button" disabled={creating}>

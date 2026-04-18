@@ -140,6 +140,10 @@ export function statusTone(status) {
     return "danger";
   }
 
+  if (normalized === "free") {
+    return "success";
+  }
+
   return "info";
 }
 
@@ -155,6 +159,7 @@ export function sentenceFromStatus(status) {
     running: "Выполняется",
     paused: "Приостановлен",
     signed: "Подписан",
+    free: "Свободен",
   };
 
   return labels[status] || status || "Не указан";
