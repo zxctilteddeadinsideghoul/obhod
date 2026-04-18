@@ -38,7 +38,7 @@ flowchart LR
     Report -. future events .-> Redpanda
 ```
 
-## Авторизация
+## Проверка доступа
 
 Все защищенные запросы идут через Traefik.
 
@@ -55,6 +55,13 @@ X-User-Name
 ```
 
 Целевые сервисы используют эти заголовки для проверки бизнес-доступа.
+
+Работников для мобильного приложения создает начальник:
+
+```http
+POST /api/auth/admin/workers
+Authorization: Bearer <admin_access_token>
+```
 
 ## Документация по сервисам
 

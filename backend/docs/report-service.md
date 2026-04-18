@@ -27,6 +27,18 @@
 Authorization: Bearer <admin_access_token>
 ```
 
+Получение токена:
+
+```http
+POST /api/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "admin123"
+}
+```
+
 ## API
 
 Все роуты находятся под:

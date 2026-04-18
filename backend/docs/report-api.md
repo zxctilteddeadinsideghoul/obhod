@@ -10,6 +10,18 @@ API для веб-интерфейса начальника. Все запрос
 Authorization: Bearer <admin_access_token>
 ```
 
+Получить токен:
+
+```http
+POST /api/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "admin123"
+}
+```
+
 Работник с `Bearer <access_token>` получает `403 Forbidden`.
 
 ## Сводка

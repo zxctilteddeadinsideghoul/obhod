@@ -6,6 +6,18 @@ API для начальника. Все ручки требуют роль `ADMI
 Authorization: Bearer <admin_access_token>
 ```
 
+Получить токен начальника:
+
+```http
+POST /api/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "admin123"
+}
+```
+
 ## Список дефектов
 
 ```http
