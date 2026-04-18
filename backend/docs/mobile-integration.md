@@ -17,15 +17,67 @@ http://localhost
 Для защищённых endpoint'ов нужно передавать Bearer token:
 
 ```http
-Authorization: Bearer dev-token
+Authorization: Bearer <access_token>
 ```
 
-Тестовые токены:
+Токен получается через логин:
+
+```http
+POST /api/auth/login
+Content-Type: application/json
+```
+
+Для мобильного приложения работника:
+
+```json
+{
+  "username": "worker",
+  "password": "worker123"
+}
+```
+
+Ответ:
+
+```json
+{
+  "access_token": "obhod...",
+  "token_type": "bearer",
+  "expires_in": 43200,
+  "user": {
+    "id": "dev-worker",
+    "role": "WORKER",
+    "name": "Development Worker"
+  }
+}
+```
+
+Для веб-интерфейса начальника используется:
 
 ```text
-Работник:     Bearer dev-token
-Начальник:    Bearer dev-admin-token
+username=admin
+password=admin123
 ```
+
+Начальник может создать нового работника для мобильного приложения:
+
+```http
+POST /api/auth/admin/workers
+Authorization: Bearer <admin_access_token>
+Content-Type: application/json
+```
+
+```json
+{
+  "username": "ivanov",
+  "password": "ivanov123",
+  "full_name": "Иванов Иван Иванович",
+  "employee_id": "worker-ivanov",
+  "qualification_id": "OPERATOR-TU",
+  "department_id": "DEPT-UGP"
+}
+```
+
+После этого работник логинится с `username=ivanov`, `password=ivanov123`.
 
 Gateway проверяет токен через `Auth Service` и прокидывает во внутренние сервисы доверенные заголовки:
 
@@ -54,6 +106,23 @@ X-User-Name
 
 ## Auth Service
 
+### Логин работника
+
+```http
+POST /api/auth/login
+```
+
+Body:
+
+```json
+{
+  "username": "worker",
+  "password": "worker123"
+}
+```
+
+Назначение: получить `access_token` для дальнейших запросов мобильного приложения.
+
 ### Получить текущего пользователя
 
 ```http
@@ -65,7 +134,7 @@ GET /api/auth/me
 Headers:
 
 ```http
-Authorization: Bearer dev-token
+Authorization: Bearer <access_token>
 ```
 
 Response:
@@ -112,7 +181,7 @@ GET /api/field/tasks/my
 Headers:
 
 ```http
-Authorization: Bearer dev-token
+Authorization: Bearer <access_token>
 ```
 
 Response:
@@ -152,7 +221,7 @@ GET /api/field/tasks/{round_id}
 Headers:
 
 ```http
-Authorization: Bearer dev-token
+Authorization: Bearer <access_token>
 ```
 
 Response:
@@ -184,7 +253,7 @@ Response:
       "id": "EQ-KC0103",
       "name": "Поршневая компрессорная установка КС-0103",
       "qr_tag": "QR:EQ-KC0103",
-      "nfc_tag": "NFC:04AABB11CC"
+      "nfc_tag": "E4:9E:F3:64"
     }
   ],
   "checklist_instance": {
@@ -263,7 +332,7 @@ POST /api/field/tasks/{round_id}/start
 Headers:
 
 ```http
-Authorization: Bearer dev-token
+Authorization: Bearer <access_token>
 ```
 
 Response: полный объект `RoundRead`.
@@ -290,7 +359,7 @@ POST /api/field/tasks/{round_id}/steps/{route_step_id}/confirm
 Headers:
 
 ```http
-Authorization: Bearer dev-token
+Authorization: Bearer <access_token>
 Content-Type: application/json
 ```
 
@@ -298,8 +367,8 @@ Request:
 
 ```json
 {
-  "confirm_by": "qr",
-  "scanned_value": "QR:EQ-KC0103",
+  "confirm_by": "nfc",
+  "scanned_value": "E4:9E:F3:64",
   "payload_json": {
     "deviceId": "MIG-DEMO-001"
   }
@@ -311,7 +380,7 @@ Request:
 ```json
 {
   "confirm_by": "nfc",
-  "scanned_value": "NFC:04AABB11CC"
+  "scanned_value": "E4:9E:F3:64"
 }
 ```
 
@@ -326,8 +395,8 @@ Response: полный объект `RoundRead`.
     "route_step_id": "ROUTE-KC0103-STEP-1",
     "equipment_id": "EQ-KC0103",
     "employee_id": "dev-worker",
-    "confirmed_by": "qr",
-    "scanned_value": "QR:EQ-KC0103",
+    "confirmed_by": "nfc",
+    "scanned_value": "E4:9E:F3:64",
     "confirmed_at": "2026-04-17T16:05:58Z",
     "status": "confirmed",
     "payload_json": {
@@ -338,7 +407,7 @@ Response: полный объект `RoundRead`.
     "id": "EQ-KC0103",
     "name": "Поршневая компрессорная установка КС-0103",
     "qr_tag": "QR:EQ-KC0103",
-    "nfc_tag": "NFC:04AABB11CC"
+    "nfc_tag": "E4:9E:F3:64"
   },
   "checklist_instance": {
     "id": "CL-2026-04-17-555",
@@ -385,7 +454,7 @@ POST /api/field/checklists/{checklist_instance_id}/items/{item_template_id}/resu
 Headers:
 
 ```http
-Authorization: Bearer dev-token
+Authorization: Bearer <access_token>
 Content-Type: application/json
 ```
 
@@ -474,7 +543,7 @@ POST /api/field/equipment/{equipment_id}/readings
 Headers:
 
 ```http
-Authorization: Bearer dev-token
+Authorization: Bearer <access_token>
 Content-Type: application/json
 ```
 
@@ -555,7 +624,7 @@ POST /api/field/tasks/{round_id}/finish
 Headers:
 
 ```http
-Authorization: Bearer dev-token
+Authorization: Bearer <access_token>
 ```
 
 Response:
@@ -661,14 +730,22 @@ item_template_id 1:    TPL-EVERYDAY-SAFETY-02-ITEM-1
 item_template_id 2:    TPL-EVERYDAY-SAFETY-02-ITEM-2
 parameter_def_id:      PARAM-COMPRESSOR-PRESSURE-OUT
 qr_tag:                QR:EQ-KC0103
-nfc_tag:               NFC:04AABB11CC
+nfc_tag:               E4:9E:F3:64
+```
+
+Demo NFC cards:
+
+```text
+EQ-KC0103        E4:9E:F3:64
+EQ-PUMP-0201     11:D0:DC:B0
+EQ-TRANS-1001    A4:87:65:1D
 ```
 
 ## Фотофиксация
 
 ```http
 POST /api/field/attachments
-Authorization: Bearer dev-token
+Authorization: Bearer <access_token>
 Content-Type: multipart/form-data
 ```
 
@@ -683,7 +760,7 @@ Form fields:
 
 ```bash
 curl -X POST http://localhost/api/field/attachments \
-  -H "Authorization: Bearer dev-token" \
+  -H "Authorization: Bearer <access_token>" \
   -F "entity_type=checklist_item_result" \
   -F "entity_id=a7cdaab8-26df-4e85-bf55-f97d7a0333c7" \
   -F "payload_json={\"caption\":\"Фото дефекта\"}" \
@@ -700,5 +777,5 @@ GET /api/field/attachments/{attachment_id}/download
 
 ```http
 POST /api/field/admin/seed-demo
-Authorization: Bearer dev-admin-token
+Authorization: Bearer <admin_access_token>
 ```

@@ -29,17 +29,49 @@ GET http://localhost/api/field/health
 GET http://localhost/api/reports/health
 ```
 
-Protected routes use Traefik `forwardAuth`. For the initial scaffold, pass:
+Protected routes use Traefik `forwardAuth`. First get a token:
 
-```text
-Authorization: Bearer dev-token
+```bash
+curl -s http://127.0.0.1/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"worker","password":"worker123"}'
 ```
 
-For admin-only scaffold endpoints, pass:
+Then pass it to protected endpoints:
 
 ```text
-Authorization: Bearer dev-admin-token
+Authorization: Bearer <access_token>
 ```
+
+For admin-only endpoints, login as admin:
+
+```bash
+curl -s http://127.0.0.1/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin123"}'
+```
+
+```text
+Authorization: Bearer <admin_access_token>
+```
+
+Create a worker for the mobile app:
+
+```bash
+curl -s http://127.0.0.1/api/auth/admin/workers \
+  -H "Authorization: Bearer <admin_access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "ivanov",
+    "password": "ivanov123",
+    "full_name": "Иванов Иван Иванович",
+    "employee_id": "worker-ivanov",
+    "qualification_id": "OPERATOR-TU",
+    "department_id": "DEPT-UGP"
+  }'
+```
+
+Then the worker logs in with `ivanov / ivanov123`.
 
 ## Smoke Tests
 
@@ -57,6 +89,7 @@ The smoke test covers:
 - worker task flow: start, QR confirmation, checklist submission and finish;
 - equipment reading submission;
 - attachment upload to MinIO, listing and download;
+- defect management: list, detail, status update and severity override;
 - supervisor reports and analytics;
 - basic RBAC checks.
 
@@ -64,9 +97,11 @@ Optional environment variables:
 
 ```text
 SMOKE_BASE_URL=http://127.0.0.1
-SMOKE_WORKER_TOKEN=dev-token
-SMOKE_ADMIN_TOKEN=dev-admin-token
+SMOKE_WORKER_TOKEN=<access_token>
+SMOKE_ADMIN_TOKEN=<admin_access_token>
 ```
+
+If tokens are not passed, smoke test logs in as `worker` and `admin` automatically.
 
 ## Domain Unit Tests
 

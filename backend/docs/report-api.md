@@ -7,10 +7,10 @@ API для веб-интерфейса начальника. Все запрос
 Нужен токен начальника:
 
 ```http
-Authorization: Bearer dev-admin-token
+Authorization: Bearer <admin_access_token>
 ```
 
-Работник с `Bearer dev-token` получает `403 Forbidden`.
+Работник с `Bearer <access_token>` получает `403 Forbidden`.
 
 ## Сводка
 
@@ -64,6 +64,24 @@ GET /api/reports/rounds/{round_id}
 GET /api/field/attachments/{attachment_id}/download
 ```
 
+## Экспорт отчёта обхода
+
+```http
+GET /api/reports/rounds/{round_id}/export?format=csv
+GET /api/reports/rounds/{round_id}/export?format=json
+GET /api/reports/rounds/{round_id}/export?format=pdf
+```
+
+Назначение: скачать детальный отчёт обхода файлом.
+
+CSV содержит секции:
+
+- общая информация об обходе;
+- результаты чек-листа;
+- показания оборудования;
+- дефекты;
+- вложения и ссылки на скачивание фото.
+
 ## Аналитика по оборудованию
 
 ```http
@@ -87,3 +105,18 @@ Query params:
 - `limit` - количество записей, по умолчанию `20`.
 
 Назначение: показать выполнение обходов по сотрудникам: количество обходов, подтверждённых точек, среднее время выполнения и найденные отклонения.
+
+## Экспорт аналитики
+
+```http
+GET /api/reports/analytics/export?format=csv
+GET /api/reports/analytics/export?format=json
+GET /api/reports/analytics/export?format=pdf
+```
+
+Query params:
+
+- `format` - `csv`, `json` или `pdf`, по умолчанию `csv`;
+- `limit` - количество записей в блоках оборудования и работников, по умолчанию `20`.
+
+Назначение: скачать сводку для начальника одним файлом. В экспорт входят общие показатели, аналитика по оборудованию и аналитика по работникам.

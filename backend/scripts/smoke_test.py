@@ -12,8 +12,8 @@ from urllib.request import Request, urlopen
 
 
 BASE_URL = os.getenv("SMOKE_BASE_URL", "http://127.0.0.1").rstrip("/")
-WORKER_TOKEN = os.getenv("SMOKE_WORKER_TOKEN", "dev-token")
-ADMIN_TOKEN = os.getenv("SMOKE_ADMIN_TOKEN", "dev-admin-token")
+WORKER_TOKEN = os.getenv("SMOKE_WORKER_TOKEN")
+ADMIN_TOKEN = os.getenv("SMOKE_ADMIN_TOKEN")
 TIMEOUT_SEC = float(os.getenv("SMOKE_TIMEOUT_SEC", "15"))
 
 
@@ -152,7 +152,20 @@ def query(path: str, params: dict[str, str]) -> str:
     return f"{path}?{urlencode(params)}"
 
 
+def login(username: str, password: str) -> str:
+    response = request(
+        "POST",
+        "/api/auth/login",
+        json_body={"username": username, "password": password},
+    ).json()
+    assert_true(response["token_type"] == "bearer", f"Unexpected token type: {response}")
+    assert_true(bool(response["access_token"]), f"Empty login token: {response}")
+    return response["access_token"]
+
+
 def main() -> int:
+    global ADMIN_TOKEN, WORKER_TOKEN
+
     suffix = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
     equipment_id = f"EQ-SMOKE-{suffix}"
     template_id = f"TPL-SMOKE-{suffix}"
@@ -163,6 +176,10 @@ def main() -> int:
 
     log(f"base url: {BASE_URL}")
 
+    log("auth: login worker and admin")
+    WORKER_TOKEN = WORKER_TOKEN or login("worker", "worker123")
+    ADMIN_TOKEN = ADMIN_TOKEN or login("admin", "admin123")
+
     log("auth: current worker")
     worker = request("GET", "/api/auth/me", token=WORKER_TOKEN).json()
     assert_true(worker["role"] == "WORKER", f"Expected WORKER, got {worker}")
@@ -170,6 +187,28 @@ def main() -> int:
     log("auth: current admin")
     admin = request("GET", "/api/auth/me", token=ADMIN_TOKEN).json()
     assert_true(admin["role"] == "ADMIN", f"Expected ADMIN, got {admin}")
+
+    log("auth: admin creates worker and worker can login")
+    created_worker_username = f"worker-smoke-{suffix}"
+    created_worker_password = "worker-smoke-123"
+    created_worker = request(
+        "POST",
+        "/api/auth/admin/workers",
+        token=ADMIN_TOKEN,
+        json_body={
+            "username": created_worker_username,
+            "password": created_worker_password,
+            "full_name": "Smoke Test Worker",
+            "employee_id": f"worker-smoke-{suffix}",
+            "qualification_id": "OPERATOR-TU",
+            "department_id": "DEPT-UGP",
+        },
+        expected=201,
+    ).json()
+    assert_true(created_worker["role"] == "WORKER", f"Expected created WORKER, got {created_worker}")
+    created_worker_token = login(created_worker_username, created_worker_password)
+    created_worker_me = request("GET", "/api/auth/me", token=created_worker_token).json()
+    assert_true(created_worker_me["id"] == created_worker["id"], f"Unexpected created worker login: {created_worker_me}")
 
     log("health: field and reports")
     request("GET", "/api/field/health")
@@ -188,6 +227,15 @@ def main() -> int:
             for item in demo_detail["equipment_parameters"]
         ),
         f"Task detail has no compressor pressure parameter: {demo_detail['equipment_parameters']}",
+    )
+
+    log("worker: seeded NFC route can be confirmed before reading")
+    request("POST", "/api/field/tasks/ROUND-2026-04-17-000123/start", token=WORKER_TOKEN)
+    request(
+        "POST",
+        "/api/field/tasks/ROUND-2026-04-17-000123/steps/ROUTE-KC0103-STEP-1/confirm",
+        token=WORKER_TOKEN,
+        json_body={"confirm_by": "nfc", "scanned_value": "E4:9E:F3:64"},
     )
 
     log("rbac: worker cannot create equipment")
@@ -404,6 +452,7 @@ def main() -> int:
     detail = request("GET", f"/api/reports/rounds/{round_id}", token=ADMIN_TOKEN).json()
     assert_true(detail["round"]["id"] == round_id, f"Unexpected report detail: {detail}")
     assert_true(len(detail["defects"]) >= 1, f"Auto-created defect not present in report detail: {detail}")
+    defect_id = detail["defects"][0]["id"]
     assert_true(
         detail["defects"][0]["severity"] in {"info", "low", "medium", "high", "critical"},
         f"Unexpected defect severity: {detail['defects']}",
@@ -413,11 +462,70 @@ def main() -> int:
         f"Attachment not present in report detail: {detail.get('attachments')}",
     )
 
+    log("reports: export round report")
+    round_csv = request(
+        "GET",
+        query(f"/api/reports/rounds/{round_id}/export", {"format": "csv"}),
+        token=ADMIN_TOKEN,
+    )
+    assert_true(
+        f"round-report-{round_id}.csv" in round_csv.headers.get("Content-Disposition", ""),
+        f"Unexpected round export headers: {round_csv.headers}",
+    )
+    assert_true(b"Checklist results" in round_csv.body, "Round CSV export has no checklist section")
+    round_json = request(
+        "GET",
+        query(f"/api/reports/rounds/{round_id}/export", {"format": "json"}),
+        token=ADMIN_TOKEN,
+    ).json()
+    assert_true(round_json["round"]["id"] == round_id, f"Unexpected round JSON export: {round_json}")
+    round_pdf = request(
+        "GET",
+        query(f"/api/reports/rounds/{round_id}/export", {"format": "pdf"}),
+        token=ADMIN_TOKEN,
+    )
+    assert_true(round_pdf.body.startswith(b"%PDF-"), "Round PDF export is not a PDF")
+
+    log("field defects: list, detail and update")
+    defects = request("GET", "/api/field/defects", token=ADMIN_TOKEN).json()
+    assert_true(any(item["id"] == defect_id for item in defects), f"Defect not listed: {defects}")
+    defect = request("GET", f"/api/field/defects/{defect_id}", token=ADMIN_TOKEN).json()
+    assert_true(defect["payload_json"].get("severity"), f"Defect has no severity explanation: {defect}")
+    updated_status = request(
+        "PATCH",
+        f"/api/field/defects/{defect_id}/status",
+        token=ADMIN_TOKEN,
+        json_body={"status": "in_review", "comment": "Smoke review"},
+    ).json()
+    assert_true(updated_status["status"] == "in_review", f"Defect status was not updated: {updated_status}")
+    updated_severity = request(
+        "PATCH",
+        f"/api/field/defects/{defect_id}/severity",
+        token=ADMIN_TOKEN,
+        json_body={"severity": "medium", "comment": "Smoke priority override"},
+    ).json()
+    assert_true(updated_severity["severity"] == "medium", f"Defect severity was not updated: {updated_severity}")
+    request("GET", "/api/field/defects", token=WORKER_TOKEN, expected=403)
+
     log("reports: analytics")
     equipment_analytics = request("GET", "/api/reports/analytics/equipment", token=ADMIN_TOKEN).json()
     employee_analytics = request("GET", "/api/reports/analytics/employees", token=ADMIN_TOKEN).json()
     assert_true(isinstance(equipment_analytics, list), "Equipment analytics is not a list")
     assert_true(isinstance(employee_analytics, list), "Employee analytics is not a list")
+
+    log("reports: export analytics")
+    analytics_csv = request(
+        "GET",
+        query("/api/reports/analytics/export", {"format": "csv", "limit": "10"}),
+        token=ADMIN_TOKEN,
+    )
+    assert_true(b"Equipment analytics" in analytics_csv.body, "Analytics CSV export has no equipment section")
+    analytics_pdf = request(
+        "GET",
+        query("/api/reports/analytics/export", {"format": "pdf", "limit": "10"}),
+        token=ADMIN_TOKEN,
+    )
+    assert_true(analytics_pdf.body.startswith(b"%PDF-"), "Analytics PDF export is not a PDF")
 
     log("rbac: worker cannot access reports")
     request("GET", "/api/reports/analytics/summary", token=WORKER_TOKEN, expected=403)

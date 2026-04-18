@@ -34,6 +34,66 @@ class DefectsRepository:
         self.stability_calculator = stability_calculator
         self.severity_calculator = severity_calculator
 
+    async def list(
+        self,
+        status: str | None = None,
+        severity: str | None = None,
+        equipment_id: str | None = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list[Defect]:
+        query = select(Defect)
+        if status is not None:
+            query = query.where(Defect.status == status)
+        if severity is not None:
+            query = query.where(Defect.severity == severity)
+        if equipment_id is not None:
+            query = query.where(Defect.equipment_id == equipment_id)
+
+        result = await self.session.execute(
+            query.order_by(Defect.detected_at.desc()).limit(limit).offset(offset)
+        )
+        return list(result.scalars().all())
+
+    async def get(self, defect_id: str) -> Defect:
+        defect = await self.session.get(Defect, defect_id)
+        if defect is None:
+            raise KeyError(f"Defect {defect_id} not found")
+        return defect
+
+    async def update_status(self, defect: Defect, new_status: str, comment: str | None, author_id: str) -> Defect:
+        before = self._defect_snapshot(defect)
+        defect.status = new_status
+        history = list(defect.payload_json.get("statusHistory", []))
+        history.append(
+            {
+                "status": new_status,
+                "comment": comment,
+                "authorId": author_id,
+                "changedAt": datetime.now(timezone.utc).isoformat(),
+            }
+        )
+        defect.payload_json = {**defect.payload_json, "statusHistory": history}
+        await self._write_update_audit(defect, "status_update", author_id, before)
+        return defect
+
+    async def update_severity(self, defect: Defect, new_severity: str, comment: str | None, author_id: str) -> Defect:
+        before = self._defect_snapshot(defect)
+        defect.severity = new_severity
+        defect.attention_marker = new_severity in {"high", "critical"}
+        overrides = list(defect.payload_json.get("severityOverrides", []))
+        overrides.append(
+            {
+                "severity": new_severity,
+                "comment": comment,
+                "authorId": author_id,
+                "changedAt": datetime.now(timezone.utc).isoformat(),
+            }
+        )
+        defect.payload_json = {**defect.payload_json, "severityOverrides": overrides}
+        await self._write_update_audit(defect, "severity_update", author_id, before)
+        return defect
+
     async def create_from_checklist_result(
         self,
         checklist_instance: ChecklistInstance,
@@ -234,6 +294,38 @@ class DefectsRepository:
         await self.session.flush()
         return defect
 
+    async def _write_update_audit(self, defect: Defect, op: str, author_id: str, before: dict) -> None:
+        now = datetime.now(timezone.utc)
+        self.session.add(
+            JournalEntry(
+                id=str(uuid4()),
+                event_ts=now,
+                event_type=f"defect.{op}",
+                entity_type="defect",
+                entity_id=defect.id,
+                org_id=defect.org_id,
+                equipment_id=defect.equipment_id,
+                employee_id=author_id,
+                payload_json={
+                    "authorId": author_id,
+                    "status": defect.status,
+                    "severity": defect.severity,
+                },
+            )
+        )
+        self.session.add(
+            AuditLog(
+                id=str(uuid4()),
+                entity_type="defect",
+                entity_id=defect.id,
+                op=op,
+                author_id=author_id,
+                before_json=before,
+                after_json=self._defect_snapshot(defect),
+            )
+        )
+        await self.session.flush()
+
     def _severity_input_from_checklist_result(
         self,
         checklist_result: ChecklistItemResult,
@@ -280,4 +372,14 @@ class DefectsRepository:
             "score": stability.stability_score,
             "riskFactor": stability.risk_factor,
             "basis": stability.basis,
+        }
+
+    def _defect_snapshot(self, defect: Defect) -> dict:
+        return {
+            "id": defect.id,
+            "equipment_id": defect.equipment_id,
+            "severity": defect.severity,
+            "attention_marker": defect.attention_marker,
+            "status": defect.status,
+            "payload_json": defect.payload_json,
         }

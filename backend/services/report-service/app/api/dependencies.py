@@ -4,6 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.containers import Container
 from app.db import get_session
 from app.use_cases import (
+    ExportReportsAnalyticsUseCase,
+    ExportRoundReportUseCase,
     GetCurrentUserUseCase,
     GetEmployeeAnalyticsUseCase,
     GetEquipmentAnalyticsUseCase,
@@ -65,3 +67,17 @@ def get_employee_analytics_use_case(
     session: AsyncSession = Depends(get_session),
 ) -> GetEmployeeAnalyticsUseCase:
     return get_container(request).get_employee_analytics_use_case(session)
+
+
+def export_round_report_use_case(
+    request: Request,
+    session: AsyncSession = Depends(get_session),
+) -> ExportRoundReportUseCase:
+    return get_container(request).export_round_report_use_case(session)
+
+
+def export_reports_analytics_use_case(
+    request: Request,
+    session: AsyncSession = Depends(get_session),
+) -> ExportReportsAnalyticsUseCase:
+    return get_container(request).export_reports_analytics_use_case(session)
